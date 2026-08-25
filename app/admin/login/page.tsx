@@ -7,7 +7,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const router = useRouter(); // Keep this just in case, though we won't use it for the redirect anymore
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +22,8 @@ export default function AdminLogin() {
       });
 
       if (res.ok) {
-        router.push("/admin");
-        router.refresh(); // Forces the middleware to recognize the new cookie
+        // FIX: Force a hard reload so the browser recognizes the new secure Vercel cookie
+        window.location.href = "/admin";
       } else {
         const data = await res.json();
         setError(data.error || "Incorrect password");
