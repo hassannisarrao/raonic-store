@@ -116,7 +116,8 @@ export default function HomePage() {
           playsInline 
           className="absolute inset-0 w-full h-full object-cover opacity-60 scale-105 pointer-events-none"
         >
-          <source src="/hero.mp4" type="video/mp4" />
+          {/* FIX APPLIED: Changed video source to banner-video.mp4 */}
+          <source src="/banner-video.mp4" type="video/mp4" />
         </video>
         
         {/* Cinematic Gradient Overlay */}

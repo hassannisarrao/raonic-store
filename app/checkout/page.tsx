@@ -63,11 +63,12 @@ export default function CheckoutPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-10">
+    // FIX APPLIED HERE: Adjusted padding for mobile (p-4) and added top padding (pt-28 md:pt-32) to clear the navbar
+    <main className="min-h-screen bg-gray-50 p-4 pt-28 md:p-10 md:pt-32">
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-12">
         
         {/* Left Side: Shipping Form */}
-        <div className="w-full lg:w-2/3 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+        <div className="w-full lg:w-2/3 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Shipping Details</h2>
           
           <form onSubmit={handlePlaceOrder} className="space-y-6">
@@ -105,7 +106,7 @@ export default function CheckoutPage() {
         </div>
 
         {/* Right Side: Order Summary */}
-        <div className="w-full lg:w-1/3 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-fit">
+        <div className="w-full lg:w-1/3 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 h-fit">
           <h2 className="text-xl font-bold text-gray-900 mb-6 border-b pb-4">Order Summary</h2>
           
           <div className="space-y-4 mb-6 max-h-96 overflow-y-auto pr-2">
