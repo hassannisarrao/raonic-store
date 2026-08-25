@@ -22,6 +22,17 @@ export default function HomePage() {
   // Wishlist State
   const [wishlist, setWishlist] = useState<string[]>([]);
 
+  // State to handle text fading out for the video transition effect
+  const [showHeroText, setShowHeroText] = useState(true);
+
+  useEffect(() => {
+    // Hide the HTML text after 4 seconds so the video text "RAONIC World of Luxury" takes over cleanly
+    const timer = setTimeout(() => {
+      setShowHeroText(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const toggleWishlist = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     setWishlist(prev => 
@@ -105,18 +116,18 @@ export default function HomePage() {
         }
       `}} />
       
-      {/* 1. CINEMATIC HERO SECTION */}
+      {/* 1. CINEMATIC HERO SECTION WITH TIMED TEXT TRANSITION */}
       <section className="relative text-white overflow-hidden min-h-[60vh] md:min-h-[75vh] flex items-center justify-center bg-black pt-16">
         
-        {/* Real Video Background Integration */}
+        {/* Optimized Video Background for Instant Mobile Playback */}
         <video 
           autoPlay 
           loop 
           muted 
           playsInline 
-          className="absolute inset-0 w-full h-full object-cover opacity-60 scale-105 pointer-events-none"
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover opacity-80 scale-105 pointer-events-none"
         >
-          {/* FIX APPLIED: Changed video source to banner-video.mp4 */}
           <source src="/banner-video.mp4" type="video/mp4" />
         </video>
         
@@ -126,20 +137,23 @@ export default function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center text-center">
           
           {/* Floating Glassmorphism Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] md:text-xs font-black tracking-[0.2em] uppercase text-white mb-6 shadow-2xl animate-bounce">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] md:text-xs font-black tracking-[0.2em] uppercase text-white mb-6 shadow-2xl">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
             ⚡ New Summer Drop Live
           </div>
 
-          <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-4 md:mb-6 tracking-tight leading-none drop-shadow-2xl">
-            Elevate Your <br className="hidden md:block" /> Everyday Life.
-          </h1>
-          <p className="text-slate-300 text-xs sm:text-sm md:text-lg max-w-xl mx-auto mb-8 font-medium drop-shadow-md leading-relaxed">
-            Explore Raonic's curated collection of premium products. Designed for excellence, delivered to your door.
-          </p>
+          {/* Heading that smoothly fades out to reveal the video text */}
+          <div className={`transition-opacity duration-1000 ${showHeroText ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-4 md:mb-6 tracking-tight leading-none drop-shadow-2xl">
+              Elevate Your <br className="hidden md:block" /> Everyday Life.
+            </h1>
+            <p className="text-slate-300 text-xs sm:text-sm md:text-lg max-w-xl mx-auto mb-8 font-medium drop-shadow-md leading-relaxed">
+              Explore Raonic's curated collection of premium products. Designed for excellence, delivered to your door.
+            </p>
+          </div>
 
-          {/* Dual-Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 items-center">
+          {/* Dual-Action Buttons (Always interactive and ready) */}
+          <div className="flex flex-col sm:flex-row gap-3 items-center mt-4">
             <button 
               onClick={() => window.scrollTo({ top: 700, behavior: 'smooth' })}
               className="bg-white text-black px-8 py-3.5 md:py-4.5 rounded-full font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 cursor-pointer"
@@ -204,10 +218,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. MAIN STOREFRONT (Properly Spaced with mt-10) */}
+      {/* 4. MAIN STOREFRONT */}
       <div className="max-w-7xl mx-auto px-6 mt-10 md:mt-12 relative z-30">
         
-        {/* Search & Category Marquee Filter Bar */}
+        {/* Search & Category Filter Bar */}
         <div className="flex flex-col lg:flex-row gap-6 items-center justify-between mb-12 bg-white/95 backdrop-blur-xl p-4 md:p-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-slate-200/80">
           <div className="w-full lg:w-1/3 relative group">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -237,7 +251,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Product Grid with Wishlist & Secondary Hover */}
+        {/* Product Grid */}
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8 pt-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -334,7 +348,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 5. INTERACTIVE TRENDING PROMOTIONAL BANNER HALFWAY DOWN */}
+        {/* 5. INTERACTIVE TRENDING PROMOTIONAL BANNER */}
         <div className="my-24 bg-gradient-to-r from-slate-900 via-black to-slate-900 rounded-3xl p-8 md:p-14 text-white shadow-2xl relative overflow-hidden border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none"></div>
           <div className="relative z-10 max-w-xl">
@@ -360,7 +374,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* The Invisible Sensor for Infinite Scroll */}
+        {/* Infinite Scroll Sensor */}
         {hasMore && !loading && (
           <div ref={loadMoreNodeRef} className="h-32 w-full flex items-center justify-center mt-8">
             {loadingMore && (
