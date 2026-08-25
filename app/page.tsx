@@ -22,15 +22,24 @@ export default function HomePage() {
   // Wishlist State
   const [wishlist, setWishlist] = useState<string[]>([]);
 
-  // State to handle text fading out for the video transition effect
-  const [showHeroText, setShowHeroText] = useState(true);
+  // Professional Cross-Fade State (Alternates between two luxury states)
+  const [activeTextState, setActiveTextState] = useState(1);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    // Hide the HTML text after 4 seconds so the video text "RAONIC World of Luxury" takes over cleanly
-    const timer = setTimeout(() => {
-      setShowHeroText(false);
-    }, 4000);
-    return () => clearTimeout(timer);
+    // Force video to play programmatically on mobile devices immediately
+    if (videoRef.current) {
+      videoRef.current.play().catch((error) => {
+        console.log("Auto-play prevented by mobile browser:", error);
+      });
+    }
+
+    // Toggle between text states to keep the hero section lively and engaging
+    const interval = setInterval(() => {
+      setActiveTextState((prev) => (prev === 1 ? 2 : 1));
+    }, 5000); // Switches every 5 seconds seamlessly
+
+    return () => clearInterval(interval);
   }, []);
 
   const toggleWishlist = (id: string, e: React.MouseEvent) => {
@@ -116,53 +125,69 @@ export default function HomePage() {
         }
       `}} />
       
-      {/* 1. CINEMATIC HERO SECTION WITH TIMED TEXT TRANSITION */}
-      <section className="relative text-white overflow-hidden min-h-[60vh] md:min-h-[75vh] flex items-center justify-center bg-black pt-16">
+      {/* 1. INTERNATIONAL LUXURY HERO SECTION */}
+      <section className="relative text-white overflow-hidden min-h-[65vh] md:min-h-[80vh] flex items-center justify-center bg-black pt-16">
         
-        {/* Optimized Video Background for Instant Mobile Playback */}
+        {/* Force-Playing Mobile & Desktop Video Background */}
         <video 
+          ref={videoRef}
           autoPlay 
           loop 
           muted 
           playsInline 
           preload="auto"
-          className="absolute inset-0 w-full h-full object-cover opacity-80 scale-105 pointer-events-none"
+          className="absolute inset-0 w-full h-full object-cover opacity-75 scale-105 pointer-events-none"
         >
           <source src="/banner-video.mp4" type="video/mp4" />
         </video>
         
-        {/* Cinematic Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/70 pointer-events-none"></div>
+        {/* Deep Luxury Gradient Overlay for Elite Contrast */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/60 pointer-events-none"></div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center text-center">
           
           {/* Floating Glassmorphism Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] md:text-xs font-black tracking-[0.2em] uppercase text-white mb-6 shadow-2xl">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] md:text-xs font-black tracking-[0.25em] uppercase text-white mb-6 shadow-2xl">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-            ⚡ New Summer Drop Live
+            ⚡ Global Flagship Store
           </div>
 
-          {/* Heading that smoothly fades out to reveal the video text */}
-          <div className={`transition-opacity duration-1000 ${showHeroText ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-4 md:mb-6 tracking-tight leading-none drop-shadow-2xl">
-              Elevate Your <br className="hidden md:block" /> Everyday Life.
-            </h1>
-            <p className="text-slate-300 text-xs sm:text-sm md:text-lg max-w-xl mx-auto mb-8 font-medium drop-shadow-md leading-relaxed">
-              Explore Raonic's curated collection of premium products. Designed for excellence, delivered to your door.
-            </p>
+          {/* Dynamic Cross-Fading Luxury Text Container */}
+          <div className="relative min-h-[140px] md:min-h-[180px] flex items-center justify-center max-w-4xl mx-auto">
+            
+            {/* State 1: Primary Welcome Headline */}
+            <div className={`absolute inset-0 transition-all duration-1000 transform flex flex-col items-center justify-center ${activeTextState === 1 ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95 pointer-events-none"}`}>
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-3 md:mb-4 tracking-tight leading-none drop-shadow-2xl">
+                Elevate Your <br className="hidden md:block" /> Everyday Life.
+              </h1>
+              <p className="text-slate-300 text-xs sm:text-sm md:text-base max-w-md mx-auto font-medium drop-shadow-md">
+                Designed for uncompromising excellence and modern living.
+              </p>
+            </div>
+
+            {/* State 2: Secondary Luxury Brand Statement */}
+            <div className={`absolute inset-0 transition-all duration-1000 transform flex flex-col items-center justify-center ${activeTextState === 2 ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95 pointer-events-none"}`}>
+              <h2 className="text-3xl sm:text-5xl md:text-7xl font-black mb-3 md:mb-4 tracking-wider uppercase leading-none drop-shadow-2xl">
+                Uncompromising <br className="hidden md:block" /> Quality.
+              </h2>
+              <p className="text-slate-300 text-xs sm:text-sm md:text-base max-w-md mx-auto font-medium tracking-wide">
+                Curated collections delivered straight to your door.
+              </p>
+            </div>
+
           </div>
 
-          {/* Dual-Action Buttons (Always interactive and ready) */}
-          <div className="flex flex-col sm:flex-row gap-3 items-center mt-4">
+          {/* Dual-Action Boutique Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center mt-6 z-20">
             <button 
               onClick={() => window.scrollTo({ top: 700, behavior: 'smooth' })}
-              className="bg-white text-black px-8 py-3.5 md:py-4.5 rounded-full font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 cursor-pointer"
+              className="bg-white text-black px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 cursor-pointer"
             >
               Shop Collection
             </button>
             <Link 
               href="/products"
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md px-8 py-3.5 md:py-4.5 rounded-full font-black text-xs uppercase tracking-widest transition-all hover:scale-105"
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md px-8 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all hover:scale-105"
             >
               Explore Lookbook
             </Link>
