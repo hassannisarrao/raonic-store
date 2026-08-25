@@ -24,7 +24,7 @@ export default function HomePage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    // Force video to loop and play programmatically on mobile and desktop devices immediately
+    // Force video to loop and play programmatically on mobile and desktop devices immediately[cite: 5]
     if (videoRef.current) {
       videoRef.current.play().catch((error) => {
         console.log("Auto-play restricted by browser policy:", error);
@@ -116,9 +116,9 @@ export default function HomePage() {
       `}} />
       
       {/* 1. INTERNATIONAL LUXURY HERO SECTION */}
-      <section className="relative text-white overflow-hidden min-h-[70vh] md:min-h-[85vh] flex items-center justify-center bg-black pt-20">
+      <section className="relative text-white overflow-hidden min-h-[65vh] md:min-h-[80vh] flex flex-col justify-between bg-black pt-20 pb-12">
         
-        {/* Force-Playing & Seamlessly Looping Mobile/Desktop Video Background */}
+        {/* Force-Playing & Seamlessly Looping Mobile/Desktop Video Background[cite: 5] */}
         <video 
           ref={videoRef}
           autoPlay 
@@ -131,38 +131,39 @@ export default function HomePage() {
           <source src="/banner-video.mp4" type="video/mp4" />
         </video>
         
-        {/* Deep Luxury Gradient Overlay for Elite Visual Contrast */}
+        {/* Deep Luxury Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/60 pointer-events-none"></div>
 
-        <div className="relative z-10 max-w-5xl mx-auto px-6 py-16 md:py-24 flex flex-col items-center text-center">
-          
-          {/* Floating Glassmorphism Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] md:text-xs font-black tracking-[0.25em] uppercase text-white mb-6 shadow-2xl">
+        {/* TOP: Sale Badge Announcement Bar */}
+        <div className="relative z-10 w-full flex justify-center px-6 pt-2">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[10px] md:text-xs font-black tracking-[0.25em] uppercase text-white shadow-2xl">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-            ⚡ Global Flagship Store
+            ⚡ 40% Sale on All Products
           </div>
+        </div>
 
-          {/* Clean, Non-Overlapping Main Headline */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black mb-4 tracking-tight leading-tight drop-shadow-2xl">
-            Elevate Your Everyday Life.
-          </h1>
-          
-          {/* Subtitle */}
-          <p className="text-slate-300 text-sm sm:text-base md:text-lg max-w-xl mx-auto mb-10 font-medium drop-shadow-md leading-relaxed">
-            Curated collections engineered for uncompromising quality and modern living.
-          </p>
+        {/* UPPER-MIDDLE: Aesthetic Stylized Subtitle Text placed above video's watermark */}
+        <div className="relative z-10 w-full flex flex-col items-center text-center px-6 mt-4">
+          <span className="text-[11px] sm:text-xs md:text-sm font-light tracking-[0.4em] uppercase text-amber-200/90 drop-shadow-md">
+            REDEFINING THE
+          </span>
+          <span className="text-xs sm:text-sm md:text-base font-bold tracking-[0.3em] uppercase text-white mt-0.5 drop-shadow-lg">
+            Luxurious Lifestyle
+          </span>
+        </div>
 
-          {/* Dual-Action Boutique Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
+        {/* BOTTOM: High-End Transparent Frosted Glass Buttons */}
+        <div className="relative z-10 max-w-5xl mx-auto px-6 flex flex-col items-center text-center mt-auto mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
             <button 
               onClick={() => window.scrollTo({ top: 700, behavior: 'smooth' })}
-              className="bg-white text-black px-9 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 cursor-pointer"
+              className="w-full sm:w-auto bg-white/15 backdrop-blur-md border border-white/30 text-white px-9 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-white hover:text-black transition-all shadow-[0_0_30px_rgba(0,0,0,0.5)] hover:scale-105 cursor-pointer"
             >
               Shop Collection
             </button>
             <Link 
               href="/products"
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md px-9 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all hover:scale-105"
+              className="w-full sm:w-auto text-center bg-black/40 hover:bg-white hover:text-black text-white border border-white/30 backdrop-blur-md px-9 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all hover:scale-105 shadow-[0_0_30px_rgba(0,0,0,0.5)]"
             >
               Explore Lookbook
             </Link>
@@ -170,7 +171,7 @@ export default function HomePage() {
         </div>
 
         {/* Ambient Scroll Indicator */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 hidden md:flex flex-col items-center opacity-70 hover:opacity-100 transition-opacity cursor-pointer" onClick={() => window.scrollTo({ top: 700, behavior: 'smooth' })}>
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 hidden md:flex flex-col items-center opacity-70 hover:opacity-100 transition-opacity cursor-pointer" onClick={() => window.scrollTo({ top: 700, behavior: 'smooth' })}>
           <span className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1 text-slate-300">Scroll Down</span>
           <svg className="w-4 h-4 text-white animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
         </div>
@@ -197,9 +198,25 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 3. TRUST BADGES */}
-      <section className="bg-white shadow-sm relative z-20 border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 grid grid-cols-3 gap-2 md:gap-6 text-center divide-x divide-slate-100">
+      {/* 3. DEDICATED LUXURY BRAND INTRO BANNER (Clean, Professional, Sized Down) */}
+      <section className="bg-white py-12 px-6 border-b border-slate-200 text-center relative z-20 shadow-sm">
+        <div className="max-w-2xl mx-auto flex flex-col items-center">
+          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-indigo-600 mb-2 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+            Welcome to Raonic Global Flagship
+          </span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight leading-snug">
+            Elevate Your Everyday Life.
+          </h2>
+          <div className="w-12 h-1 bg-black mb-3 rounded-full"></div>
+          <p className="text-slate-600 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl font-medium">
+            Explore Raonic&apos;s curated collection of premium products Designed for absolute excellence, premium aesthetics, and delivered straight to your door[cite: 5].
+          </p>
+        </div>
+      </section>
+
+      {/* 4. TRUST BADGES */}
+      <section className="bg-slate-50 shadow-sm relative z-20 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 grid grid-cols-3 gap-2 md:gap-6 text-center divide-x divide-slate-200">
           <div className="flex flex-col items-center px-1">
             <svg className="w-5 h-5 md:w-7 md:h-7 text-black mb-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
             <h3 className="text-[10px] md:text-xs font-black uppercase tracking-wider">Free Shipping</h3>
@@ -218,7 +235,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. MAIN STOREFRONT */}
+      {/* 5. MAIN STOREFRONT */}
       <div className="max-w-7xl mx-auto px-6 mt-10 md:mt-12 relative z-30">
         
         {/* Search & Category Filter Bar */}
@@ -348,7 +365,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 5. INTERACTIVE TRENDING PROMOTIONAL BANNER */}
+        {/* 6. INTERACTIVE TRENDING PROMOTIONAL BANNER */}
         <div className="my-24 bg-gradient-to-r from-slate-900 via-black to-slate-900 rounded-3xl p-8 md:p-14 text-white shadow-2xl relative overflow-hidden border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none"></div>
           <div className="relative z-10 max-w-xl">
