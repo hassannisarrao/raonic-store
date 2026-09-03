@@ -44,7 +44,7 @@ export default function TrackOrderPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F4F6FB] text-slate-900 font-sans selection:bg-black selection:text-white pt-36 pb-32 relative overflow-hidden">
+    <main className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-black selection:text-white pt-36 pb-32 relative overflow-hidden">
       
       {/* Soft Luxury Background Lighting */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-b from-blue-200/50 via-indigo-100/30 to-transparent blur-3xl pointer-events-none"></div>
@@ -73,7 +73,7 @@ export default function TrackOrderPage() {
               <input
                 type="text"
                 required
-                placeholder="e.g. RNK-84189"
+                placeholder="e.g. RNC-841890"
                 value={trackingId}
                 onChange={(e) => setTrackingId(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl pl-14 pr-6 py-4 md:py-4 text-sm md:text-base font-mono uppercase font-bold focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all shadow-inner"
@@ -165,8 +165,14 @@ export default function TrackOrderPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Deliver To</p>
-                  <p className="text-sm font-bold text-slate-900">{order.customerInfo?.name || "Valued Customer"}</p>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{order.customerInfo?.address || "Shipping Address Provided"}</p>
+                  {/* FIX: Correctly maps to fullName from DB */}
+                  <p className="text-sm font-bold text-slate-900">{order.customerInfo?.fullName || "Valued Customer"}</p>
+                  {/* FIX: Correctly maps to address AND city from DB */}
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    {order.customerInfo?.address 
+                      ? `${order.customerInfo.address}, ${order.customerInfo.city || ""}` 
+                      : "Shipping Address Provided"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Total Amount</p>
@@ -182,16 +188,21 @@ export default function TrackOrderPage() {
                   {order.items?.map((item: any, idx: number) => (
                     <div key={idx} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 text-sm shadow-sm hover:border-slate-300 transition-all">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-mono text-xs font-bold text-slate-800">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-mono text-xs font-bold text-slate-800 shrink-0">
                           {item.quantity || 1}x
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900">{item.name || item.title || "Product"}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Raonic Genuine Article</p>
+                          <p className="font-bold text-slate-900 line-clamp-1">{item.name || item.title || "Product"}</p>
+                          {/* FIX: Dynamic rendering for variants if they exist */}
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {item.color && `Color: ${item.color} `}
+                            {item.size && `${item.color ? '| ' : ''}Size: ${item.size} `}
+                            {!item.color && !item.size && "Raonic Genuine Article"}
+                          </p>
                         </div>
                       </div>
-                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
-                        In Progress
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 shrink-0">
+                        Confirmed
                       </span>
                     </div>
                   ))}

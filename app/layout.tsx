@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/CartContext";
 import Navbar from "@/components/Navbar";
-import SidebarCart from "@/components/SidebarCart";
+import CustomCursor from "@/components/CustomCursor"; // 1. Imported Custom Cursor
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,10 +22,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <CartProvider>
+          {/* 2. Added the Cursor component globally */}
+          <CustomCursor /> 
           <Navbar />
-          <SidebarCart />
           {children}
-          {/* Sonner Toaster safely added below your content! */}
           <Toaster richColors position="bottom-right" />
         </CartProvider>
       </body>

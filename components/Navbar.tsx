@@ -9,10 +9,10 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   
-  // Calculate cart items safely
+  // Calculate cart items safely[cite: 2]
   const cartItemCount = cart.reduce((total, item) => total + (Number(item.quantity) || 1), 0);
 
-  // Detect scrolling for dynamic glassmorphism depth
+  // Detect scrolling for dynamic glassmorphism depth[cite: 2]
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 15);

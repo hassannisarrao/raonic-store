@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Product from "@/models/Product";
 import { v2 as cloudinary } from "cloudinary";
+import { parseSmartSearch } from "@/utils/smartSearch";
 
 // Ensure Cloudinary is configured
 cloudinary.config({
@@ -28,12 +29,24 @@ export async function GET(request: Request) {
     // Pagination & Server-Side Filtering
     const page = parseInt(pageParam);
     const limit = parseInt(searchParams.get("limit") || "12");
-    const search = searchParams.get("search") || "";
+    const rawSearch = searchParams.get("search") || "";
     const category = searchParams.get("category") || "All";
+
+    // 1. Process query through Smart Search parser
+    const { cleanQuery, priceLimit } = parseSmartSearch(rawSearch);
 
     const query: any = {};
     if (category !== "All") query.category = category;
-    if (search) query.name = { $regex: search, $options: "i" };
+
+    // Apply regex search on product name using sanitized keywords
+    if (cleanQuery) {
+      query.name = { $regex: cleanQuery, $options: "i" };
+    }
+
+    // Apply price constraint if detected in natural language (e.g. "under 2000")
+    if (priceLimit !== null) {
+      query.price = { $lte: priceLimit };
+    }
 
     const skip = (page - 1) * limit;
 
@@ -68,7 +81,7 @@ export async function POST(request: Request) {
     const price = formData.get("price") as string;
     const compareAtPrice = formData.get("compareAtPrice") as string;
     const category = formData.get("category") as string;
-    const description = formData.get("description") as string; // Now accepts raw HTML
+    const description = formData.get("description") as string; // Accepts raw HTML
     
     // Create URL-friendly slug
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
@@ -77,9 +90,9 @@ export async function POST(request: Request) {
     const variantsString = formData.get("variants") as string;
     const variants = variantsString ? JSON.parse(variantsString) : [];
 
-    // === NEW: Multi-Image Upload Logic ===
+    // === Multi-Image Upload Logic ===
     const imageFiles = formData.getAll("images") as File[];
-    const legacyImage = formData.get("image") as File; // Keeps your old UI working
+    const legacyImage = formData.get("image") as File; // Keeps legacy UI working
     
     let imageUrl = "";
     let imagesArray: string[] = [];
@@ -93,7 +106,7 @@ export async function POST(request: Request) {
       imagesArray.push(uploadResponse.secure_url);
     }
 
-    // 2. Process new multi-image gallery uploads
+    // 2. Process multi-image gallery uploads
     if (imageFiles && imageFiles.length > 0) {
       for (const file of imageFiles) {
         if (file.size > 0) {
