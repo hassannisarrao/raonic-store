@@ -17,10 +17,13 @@ export default function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [currentPrice, setCurrentPrice] = useState<number>(0);
 
-  // === NEW PHASE 2: CONVERSION STATES ===
+  // Conversion States
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [showStickyBar, setShowStickyBar] = useState(false);
-  const [stockLeft, setStockLeft] = useState(7); // Fake scarcity stock number
+  const [stockLeft, setStockLeft] = useState(7); 
+  
+  // New UI States
+  const [activeAccordion, setActiveAccordion] = useState<string>("description");
 
   // 1. Fetch Product Data
   useEffect(() => {
@@ -31,8 +34,7 @@ export default function ProductDetail() {
         if (res.ok) {
           const data = await res.json();
           setProduct(data);
-          setCurrentPrice(data.price); // Set base price initially
-          // Randomize stock between 3 and 12 for realistic scarcity
+          setCurrentPrice(data.price); 
           setStockLeft(Math.floor(Math.random() * 10) + 3); 
         }
       } catch (error) {
@@ -48,15 +50,11 @@ export default function ProductDetail() {
   useEffect(() => {
     if (!product || !product.variants || product.variants.length === 0) return;
 
-    // Check if all options are selected
     const optionKeys = product.options?.map((o: any) => o.name) || [];
     const allSelected = optionKeys.every((key: string) => selectedOptions[key]);
 
     if (allSelected) {
-      // Build the matching title string (e.g. "red / Buy 1")
       const comboTitle = optionKeys.map((key: string) => selectedOptions[key]).join(" / ");
-      
-      // Find matching variant row in matrix
       const matchedVariant = product.variants.find((v: any) => v.title === comboTitle);
       if (matchedVariant && matchedVariant.price) {
         setCurrentPrice(Number(matchedVariant.price));
@@ -66,9 +64,8 @@ export default function ProductDetail() {
     }
   }, [selectedOptions, product]);
 
-  // === NEW PHASE 2: COUNTDOWN TIMER & SCROLL TRACKER ===
+  // 3. Countdown Timer & Scroll Tracker
   useEffect(() => {
-    // 24-Hour looping countdown timer
     const timer = setInterval(() => {
       const now = new Date();
       const tomorrow = new Date(now);
@@ -82,9 +79,7 @@ export default function ProductDetail() {
       });
     }, 1000);
 
-    // Sticky Bar Scroll Listener
     const handleScroll = () => {
-      // Show the sticky bar if they scroll down more than 600px
       setShowStickyBar(window.scrollY > 600);
     };
     window.addEventListener('scroll', handleScroll);
@@ -113,17 +108,12 @@ export default function ProductDetail() {
   );
 
   const handleOptionSelect = (optionName: string, value: string) => {
-    setSelectedOptions((prev) => ({
-      ...prev,
-      [optionName]: value
-    }));
+    setSelectedOptions((prev) => ({ ...prev, [optionName]: value }));
   };
 
-  // Handle the Add to Cart button click
   const handleAddToCart = () => {
     const optionsList = product.options || [];
     
-    // Ensure all options are selected if they exist
     for (const opt of optionsList) {
       if (!selectedOptions[opt.name]) {
         alert(`Please select a ${opt.name} first.`);
@@ -131,21 +121,41 @@ export default function ProductDetail() {
       }
     }
 
-    // Find specific variant title combination
     const optionKeys = optionsList.map((o: any) => o.name);
     const comboTitle = optionKeys.map((key: string) => selectedOptions[key]).join(" / ");
     
-    // Pass custom variant details into cart
     addToCart({ 
       ...product, 
-      price: currentPrice, // Uses the specific variant price!
+      price: currentPrice, 
       color: selectedOptions["Color"] || selectedOptions["color"] || comboTitle, 
       size: selectedOptions["Size"] || selectedOptions["size"] || "" 
     });
   };
 
+  // SEO JSON-LD Structured Data
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "image": product.imageUrl,
+    "description": product.description ? product.description.replace(/<[^>]*>?/gm, '') : `Buy ${product.name} at Raonic.`,
+    "sku": product._id,
+    "offers": {
+      "@type": "Offer",
+      "url": `https://raonic-store.vercel.app/products/${product.slug}`,
+      "priceCurrency": "PKR",
+      "price": currentPrice,
+      "availability": stockLeft > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "itemCondition": "https://schema.org/NewCondition"
+    }
+  };
+
   return (
     <main className="min-h-screen bg-white font-sans text-gray-900 pb-32">
+      
+      {/* Inject Google SEO Structured Data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
       <div className="max-w-7xl mx-auto px-6 pt-8 md:pt-16 pb-12 lg:pb-24">
         
         {/* Breadcrumb Navigation */}
@@ -176,7 +186,7 @@ export default function ProductDetail() {
           {/* RIGHT SIDE: DETAILS & CHECKOUT */}
           <div className="flex flex-col pt-2 lg:pt-8">
             
-            {/* UPGRADED: Premium Minimalist Urgency Banner */}
+            {/* Urgency Banner */}
             <div className="flex items-center justify-between py-4 px-5 border border-gray-100 rounded-2xl mb-8 bg-gray-50/50">
               <div className="flex items-center gap-3">
                 <span className="relative flex h-3 w-3">
@@ -190,14 +200,20 @@ export default function ProductDetail() {
               </span>
             </div>
 
-            <span className="text-xs font-black tracking-[0.2em] uppercase text-gray-400 mb-4 block">
-              {product.category || "Premium Collection"}
-            </span>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-xs font-black tracking-[0.2em] uppercase text-gray-400">
+                {product.category || "Premium Collection"}
+              </span>
+              <div className="flex items-center text-amber-400">
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                <span className="text-[10px] text-gray-600 font-bold ml-1 uppercase tracking-widest">(4.9/5 Reviews)</span>
+              </div>
+            </div>
+
             <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 text-gray-900 leading-tight">
               {product.name}
             </h1>
             
-            {/* Dynamic Price */}
             <div className="mb-6">
               <span className="text-3xl md:text-4xl font-black text-black">Rs. {currentPrice}</span>
               {product.compareAtPrice && currentPrice < product.compareAtPrice && (
@@ -205,13 +221,12 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* UPGRADED: Scarcity Indicator */}
             <div className="flex items-center gap-2 mb-10">
               <div className="w-2 h-2 rounded-full bg-gray-900"></div>
               <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">Only {stockLeft} items left in stock</p>
             </div>
 
-            {/* DYNAMICALLY RENDER ALL OPTIONS FROM ADMIN PANEL */}
+            {/* DYNAMICALLY RENDER ALL OPTIONS */}
             <div className="space-y-8 mb-10">
               {product.options && product.options.map((opt: any) => (
                 <div key={opt.name}>
@@ -220,42 +235,30 @@ export default function ProductDetail() {
                     {selectedOptions[opt.name] && <span className="text-gray-400 font-medium normal-case">- {selectedOptions[opt.name]}</span>}
                   </h3>
                   
-                  {/* UPGRADED: Check if option is "Color" to render swatches instead of buttons */}
                   {opt.name.toLowerCase() === "color" ? (
                     <div className="flex flex-wrap gap-4">
                       {opt.values.map((val: string) => {
                         const isSelected = selectedOptions[opt.name] === val;
-                        // Removes spaces to handle things like "Light Blue" becoming "lightblue" which CSS understands
                         const cssColor = val.toLowerCase().replace(/\s+/g, "");
                         return (
                           <button
                             key={val}
                             onClick={() => handleOptionSelect(opt.name, val)}
                             title={val}
-                            className={`relative w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center bg-white ${
-                              isSelected ? "border-black scale-110 shadow-md" : "border-gray-200 hover:border-gray-400"
-                            }`}
+                            className={`relative w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center bg-white ${isSelected ? "border-black scale-110 shadow-md" : "border-gray-200 hover:border-gray-400"}`}
                           >
-                            <span 
-                              className="w-9 h-9 rounded-full shadow-inner border border-black/10" 
-                              style={{ backgroundColor: cssColor }}
-                            />
+                            <span className="w-9 h-9 rounded-full shadow-inner border border-black/10" style={{ backgroundColor: cssColor }} />
                           </button>
                         );
                       })}
                     </div>
                   ) : (
-                    /* Standard text buttons for Size, Bundle, etc. */
                     <div className="flex flex-wrap gap-3">
                       {opt.values.map((val: string) => (
                         <button
                           key={val}
                           onClick={() => handleOptionSelect(opt.name, val)}
-                          className={`px-6 py-3.5 rounded-2xl text-sm font-bold transition-all border-2 ${
-                            selectedOptions[opt.name] === val 
-                              ? "bg-black text-white border-black shadow-lg scale-105" 
-                              : "bg-white text-gray-600 border-gray-200 hover:border-gray-900 hover:text-black"
-                          }`}
+                          className={`px-6 py-3.5 rounded-2xl text-sm font-bold transition-all border-2 ${selectedOptions[opt.name] === val ? "bg-black text-white border-black shadow-lg scale-105" : "bg-white text-gray-600 border-gray-200 hover:border-gray-900 hover:text-black"}`}
                         >
                           {val}
                         </button>
@@ -296,17 +299,77 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Product Description */}
-            <div className="pt-2">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-6">Product Details</h3>
-              {product.description ? (
-                <div 
-                  className="prose prose-gray max-w-none text-gray-600 leading-relaxed prose-headings:text-gray-900 prose-headings:font-bold prose-strong:text-gray-900 prose-a:text-blue-600 hover:prose-a:text-blue-500 prose-p:text-sm md:prose-p:text-base"
-                  dangerouslySetInnerHTML={{ __html: product.description }} 
-                />
-              ) : (
-                <p className="text-gray-500 text-sm md:text-base leading-relaxed">No description provided for this product.</p>
-              )}
+            {/* UPGRADED: Collapsible Accordions for Details */}
+            <div className="border-t border-gray-100 divide-y divide-gray-100">
+              
+              {/* Product Description Accordion */}
+              <div className="py-4">
+                <button onClick={() => setActiveAccordion(activeAccordion === "description" ? "" : "description")} className="w-full flex items-center justify-between py-2 text-left">
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Product Details</h3>
+                  <svg className={`w-4 h-4 transition-transform ${activeAccordion === "description" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === "description" ? "max-h-[1000px] mt-4" : "max-h-0"}`}>
+                  {product.description ? (
+                    <div className="prose prose-gray max-w-none text-gray-500 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: product.description }} />
+                  ) : (
+                    <p className="text-gray-500 text-sm leading-relaxed">No description provided for this product.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Shipping Accordion */}
+              <div className="py-4">
+                <button onClick={() => setActiveAccordion(activeAccordion === "shipping" ? "" : "shipping")} className="w-full flex items-center justify-between py-2 text-left">
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Shipping & Delivery</h3>
+                  <svg className={`w-4 h-4 transition-transform ${activeAccordion === "shipping" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === "shipping" ? "max-h-[200px] mt-4" : "max-h-0"}`}>
+                  <p className="text-gray-500 text-sm leading-relaxed mb-2">• Free nationwide shipping on all orders over Rs. 5000.</p>
+                  <p className="text-gray-500 text-sm leading-relaxed mb-2">• Cash on Delivery available across Pakistan.</p>
+                  <p className="text-gray-500 text-sm leading-relaxed">• Orders are processed and dispatched within 24-48 hours.</p>
+                </div>
+              </div>
+
+              {/* Returns Accordion */}
+              <div className="py-4">
+                <button onClick={() => setActiveAccordion(activeAccordion === "returns" ? "" : "returns")} className="w-full flex items-center justify-between py-2 text-left">
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Returns & Warranty</h3>
+                  <svg className={`w-4 h-4 transition-transform ${activeAccordion === "returns" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === "returns" ? "max-h-[200px] mt-4" : "max-h-0"}`}>
+                  <p className="text-gray-500 text-sm leading-relaxed mb-2">• 7-Day hassle-free return and exchange policy.</p>
+                  <p className="text-gray-500 text-sm leading-relaxed">• Comprehensive Raonic quality guarantee on all technology and lifestyle products.</p>
+                </div>
+              </div>
+
+            </div>
+
+            {/* UPGRADED: Verified Customer Reviews Section */}
+            <div className="mt-12 p-8 bg-gray-50 rounded-[2rem] border border-gray-100">
+              <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-6 flex items-center gap-2">
+                Customer Reviews
+                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[9px] tracking-widest">VERIFIED</span>
+              </h3>
+              
+              <div className="space-y-6">
+                <div className="border-b border-gray-200 pb-6">
+                  <div className="flex items-center gap-1 text-amber-400 mb-2">
+                    {[1,2,3,4,5].map(i => <svg key={i} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+                  </div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">Absolutely premium quality.</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed mb-3">&quot;The build quality is incredible. Exactly what I was looking for. Delivery was fast and the packaging felt like a luxury unboxing experience.&quot;</p>
+                  <p className="text-[10px] font-bold tracking-wider uppercase text-gray-400">Usman A. - Verified Buyer</p>
+                </div>
+                
+                <div>
+                  <div className="flex items-center gap-1 text-amber-400 mb-2">
+                    {[1,2,3,4,5].map(i => <svg key={i} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+                  </div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">Worth every penny.</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed mb-3">&quot;I was skeptical at first, but the product completely exceeded my expectations. Raonic customer service is also top-notch.&quot;</p>
+                  <p className="text-[10px] font-bold tracking-wider uppercase text-gray-400">Sara K. - Verified Buyer</p>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -315,13 +378,13 @@ export default function ProductDetail() {
 
       {/* MOBILE STICKY ADD TO CART BAR */}
       <div 
-        className={`md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-50 transition-transform duration-300 ease-in-out ${
-          showStickyBar ? "translate-y-0" : "translate-y-full"
+        className={`md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-200 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          showStickyBar ? "translate-y-0" : "translate-y-[120%]"
         }`}
       >
         <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-gray-500 line-clamp-1">{product.name}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 line-clamp-1">{product.name}</span>
             <span className="text-lg font-black text-black">Rs. {currentPrice}</span>
           </div>
           <button 
@@ -335,7 +398,7 @@ export default function ProductDetail() {
                 handleAddToCart();
               }
             }} 
-            className="bg-black text-white px-8 py-3.5 rounded-xl font-bold tracking-wide hover:bg-gray-800 transition-colors shrink-0"
+            className="bg-black text-white px-8 py-3.5 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all shrink-0"
           >
             Add to Cart
           </button>

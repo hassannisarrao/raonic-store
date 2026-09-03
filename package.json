@@ -15,6 +15,7 @@
     "mongodb": "^7.5.0",
     "mongoose": "^9.9.2",
     "next": "16.3.1",
+    "next-auth": "^4.24.15",
     "next-cloudinary": "^6.18.8",
     "nodemailer": "^9.0.5",
     "react": "19.2.8",

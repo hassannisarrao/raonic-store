@@ -115,6 +115,14 @@ export default function Navbar() {
           <Link href="/admin" className="text-xs md:text-sm font-extrabold text-slate-400 hover:text-black transition-colors relative py-1 hover:scale-105">
             Admin
           </Link>
+
+          {/* NEW: Professional Sign In Button */}
+          <Link 
+            href="/login" 
+            className="text-xs font-extrabold uppercase tracking-wider text-black bg-slate-100 hover:bg-black hover:text-white px-4 py-2.5 rounded-full transition-all duration-300 hover:scale-105 border border-slate-200"
+          >
+            Sign In
+          </Link>
           
           {/* Desktop Cart Button with Glow Badge */}
           <Link 
@@ -170,6 +178,11 @@ export default function Navbar() {
             <Link href="/track" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-black text-slate-900 flex items-center justify-between group">
               <span>Track Order</span> 
               <span className="text-slate-300 group-hover:translate-x-1 transition-transform">→</span>
+            </Link>
+            {/* Added Sign In link to mobile menu */}
+            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-black text-blue-600 flex items-center justify-between group">
+              <span>Sign In / VIP Portal</span> 
+              <span className="text-blue-300 group-hover:translate-x-1 transition-transform">→</span>
             </Link>
           </div>
           

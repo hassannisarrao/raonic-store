@@ -5,6 +5,7 @@ import { CartProvider } from "@/components/CartContext";
 import Navbar from "@/components/Navbar";
 import CustomCursor from "@/components/CustomCursor"; // 1. Imported Custom Cursor
 import { Toaster } from "sonner";
+import AuthProvider from "@/components/AuthProvider"; // NEW: Authentication Provider
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,13 +22,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <CartProvider>
-          {/* 2. Added the Cursor component globally */}
-          <CustomCursor /> 
-          <Navbar />
-          {children}
-          <Toaster richColors position="bottom-right" />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            {/* 2. Added the Cursor component globally */}
+            <CustomCursor /> 
+            <Navbar />
+            {children}
+            <Toaster richColors position="bottom-right" />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
