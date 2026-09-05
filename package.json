@@ -4,12 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm install --legacy-peer-deps --ignore-scripts && next build",
+    "build": "npm install --legacy-peer-deps && next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.11.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "cloudinary": "^2.10.0",
     "framer-motion": "^13.1.1",
     "jodit-react": "^5.4.72",
@@ -22,14 +25,11 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sonner": "^2.0.8",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4",
+    "typescript": "^5.3.3"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.3.1",
-    "typescript": "^5.3.3"
+    "eslint-config-next": "16.3.1"
   }
 }
