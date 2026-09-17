@@ -3,16 +3,19 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/CartContext";
+import { useSession, signOut } from "next-auth/react";
+import { toast } from "sonner";
 
 export default function Navbar() {
   const { cart } = useCart();
+  const { data: session, status } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   
-  // Calculate cart items safely[cite: 2]
+  // Calculate cart items safely
   const cartItemCount = cart.reduce((total, item) => total + (Number(item.quantity) || 1), 0);
 
-  // Detect scrolling for dynamic glassmorphism depth[cite: 2]
+  // Detect scrolling for dynamic glassmorphism depth
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 15);
@@ -20,6 +23,20 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Premium Welcome Toast (Runs only once per session when user logs in)
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const hasShownWelcome = sessionStorage.getItem("welcome_toast_shown");
+      if (!hasShownWelcome) {
+        toast.success(`Welcome back, ${session.user.name}!`, {
+          description: "You have successfully signed in to Raonic.",
+          duration: 5000,
+        });
+        sessionStorage.setItem("welcome_toast_shown", "true");
+      }
+    }
+  }, [status, session]);
 
   return (
     <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${
@@ -29,18 +46,26 @@ export default function Navbar() {
     }`}>
       <div className="flex items-center justify-between px-6 md:px-12 max-w-7xl mx-auto">
         
-        {/* Store Logo with Elite Glow Badge */}
-        <Link href="/" className="text-xl md:text-2xl font-black tracking-tight text-slate-900 z-50 flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-900 via-black to-slate-800 text-white flex items-center justify-center text-base shadow-[0_10px_20px_rgba(0,0,0,0.2)] group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
-            R
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1">
-              <span className="tracking-tight font-black text-slate-900">Raonic</span>
-              <span className="w-2 h-2 rounded-full bg-blue-600 shadow-[0_0_10px_#2563eb] animate-pulse"></span>
-            </div>
-            <span className="text-[9px] font-black tracking-[0.25em] uppercase text-slate-400">Global Store</span>
-          </div>
+        {/* VIP INTERNATIONAL GRAPHICAL TEXT LOGO */}
+        <Link href="/" className="z-50 flex flex-col items-start justify-center group py-1">
+          <span 
+            className="text-2xl md:text-3xl font-black tracking-[0.08em] uppercase transition-all duration-500 group-hover:scale-105" 
+            style={{ 
+              fontFamily: "'Playfair Display', 'Times New Roman', serif", 
+              background: "linear-gradient(135deg, #2b2b2b 0%, #111111 50%, #4a3b32 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.12))"
+            }}
+          >
+            Raonic
+          </span>
+          <span 
+            className="text-[8px] md:text-[9px] font-bold tracking-[0.4em] uppercase mt-[-2px] text-slate-500 group-hover:text-black transition-colors"
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
+          >
+            Elevate Your Lifestyle
+          </span>
         </Link>
         
         {/* DESKTOP MENU */}
@@ -116,13 +141,38 @@ export default function Navbar() {
             Admin
           </Link>
 
-          {/* NEW: Professional Sign In Button */}
-          <Link 
-            href="/login" 
-            className="text-xs font-extrabold uppercase tracking-wider text-black bg-slate-100 hover:bg-black hover:text-white px-4 py-2.5 rounded-full transition-all duration-300 hover:scale-105 border border-slate-200"
-          >
-            Sign In
-          </Link>
+          {/* DYNAMIC: Profile Widget or Sign In Button */}
+          {status === "authenticated" && session?.user ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100/80 rounded-full border border-slate-200">
+                <img 
+                  src={session.user.image || `https://ui-avatars.com/api/?name=${session.user.name}&background=0D8ABC&color=fff`} 
+                  alt="Profile" 
+                  className="w-6 h-6 rounded-full shadow-sm"
+                  referrerPolicy="no-referrer"
+                />
+                <span className="text-xs font-bold text-slate-800">
+                  {session.user.name?.split(' ')[0]}
+                </span>
+              </div>
+              <button 
+                onClick={() => {
+                  sessionStorage.removeItem("welcome_toast_shown");
+                  signOut();
+                }}
+                className="text-xs font-extrabold uppercase tracking-wider text-black bg-white hover:bg-red-600 hover:text-white px-4 py-2.5 rounded-full transition-all duration-300 hover:scale-105 border border-slate-200 shadow-sm"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link 
+              href="/login" 
+              className="text-xs font-extrabold uppercase tracking-wider text-black bg-slate-100 hover:bg-black hover:text-white px-4 py-2.5 rounded-full transition-all duration-300 hover:scale-105 border border-slate-200"
+            >
+              Sign In
+            </Link>
+          )}
           
           {/* Desktop Cart Button with Glow Badge */}
           <Link 
@@ -165,6 +215,23 @@ export default function Navbar() {
       {/* MOBILE DROPDOWN MENU */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-[0_30px_60px_rgba(0,0,0,0.1)] py-8 px-8 flex flex-col gap-6 z-40 animate-in fade-in slide-in-from-top-2 duration-300">
+          
+          {/* MOBILE PROFILE WIDGET */}
+          {status === "authenticated" && session?.user && (
+            <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
+              <img 
+                src={session.user.image || `https://ui-avatars.com/api/?name=${session.user.name}&background=0D8ABC&color=fff`} 
+                alt="Profile" 
+                className="w-12 h-12 rounded-full border-2 border-white shadow-md"
+                referrerPolicy="no-referrer"
+              />
+              <div>
+                <div className="text-sm font-black text-slate-900">{session.user.name}</div>
+                <div className="text-xs font-medium text-slate-500 truncate w-48">{session.user.email}</div>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-4">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Navigation Menu</h4>
             <Link href="/products" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-black text-slate-900 flex items-center justify-between group">
@@ -179,11 +246,25 @@ export default function Navbar() {
               <span>Track Order</span> 
               <span className="text-slate-300 group-hover:translate-x-1 transition-transform">→</span>
             </Link>
-            {/* Added Sign In link to mobile menu */}
-            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-black text-blue-600 flex items-center justify-between group">
-              <span>Sign In / VIP Portal</span> 
-              <span className="text-blue-300 group-hover:translate-x-1 transition-transform">→</span>
-            </Link>
+            
+            {status === "authenticated" ? (
+              <button 
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  sessionStorage.removeItem("welcome_toast_shown");
+                  signOut();
+                }} 
+                className="text-lg font-black text-red-600 flex items-center justify-between group text-left"
+              >
+                <span>Sign Out</span> 
+                <span className="text-red-300 group-hover:translate-x-1 transition-transform">→</span>
+              </button>
+            ) : (
+              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-lg font-black text-blue-600 flex items-center justify-between group">
+                <span>Sign In / VIP Portal</span> 
+                <span className="text-blue-300 group-hover:translate-x-1 transition-transform">→</span>
+              </Link>
+            )}
           </div>
           
           <div className="pt-6 border-t border-slate-100 flex items-center justify-between">

@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/CartContext";
 import Navbar from "@/components/Navbar";
-import CustomCursor from "@/components/CustomCursor"; // 1. Imported Custom Cursor
 import { Toaster } from "sonner";
 import AuthProvider from "@/components/AuthProvider"; // NEW: Authentication Provider
 
@@ -24,8 +23,6 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <CartProvider>
-            {/* 2. Added the Cursor component globally */}
-            <CustomCursor /> 
             <Navbar />
             {children}
             <Toaster richColors position="bottom-right" />
