@@ -3,33 +3,37 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useCart } from "@/components/CartContext";
 
 export default function HomePage() {
+  const { addToCart } = useCart();
+  const [addingItemId, setAddingItemId] = useState<string | null>(null);
+
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Infinite Scroll State[cite: 3]
+  // Infinite Scroll State
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreNodeRef = useRef<HTMLDivElement | null>(null);
 
-  // Search & Filter State[cite: 3]
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [categories, setCategories] = useState<string[]>(["All"]);
 
-  // Wishlist State[cite: 3]
+  // Wishlist State
   const [wishlist, setWishlist] = useState<string[]>([]);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Parallax Setup[cite: 3]
+  // Parallax Setup
   const { scrollY } = useScroll();
   const heroParallax = useTransform(scrollY, [0, 1000], [0, 300]);
   const bannerParallax = useTransform(scrollY, [0, 3000], [0, -150]);
 
-  // Dynamic Color Swatch State[cite: 3]
+  // Dynamic Color Swatch State
   const [activeColors, setActiveColors] = useState<{ [key: string]: string }>({});
 
   // Dynamic Social Proof State (Live Viewers)
@@ -55,6 +59,28 @@ export default function HomePage() {
     setActiveColors(prev => ({ ...prev, [productId]: colorHex }));
   };
 
+  const handleAddToCart = (product: any, e: React.MouseEvent) => {
+    e.preventDefault();
+    setAddingItemId(product._id);
+    
+    const activeColor = activeColors[product._id];
+    const secondImage = product.images && product.images[1] ? product.images[1] : product.imageUrl;
+    const displayImage = activeColor === "#0f172a" && secondImage ? secondImage : product.imageUrl;
+
+    // FIX: Changed 'id' to '_id' and 'image' to 'imageUrl' to match CartContext exactly
+    addToCart({
+      _id: product._id,
+      name: product.name,
+      price: product.price,
+      imageUrl: displayImage,
+      quantity: 1
+    });
+
+    setTimeout(() => {
+      setAddingItemId(null);
+    }, 800);
+  };
+
   const fetchProducts = async (pageNum: number, search: string, category: string, isReset: boolean) => {
     try {
       if (pageNum === 1) setLoading(true);
@@ -73,10 +99,9 @@ export default function HomePage() {
         setHasMore(data.hasMore);
         if (data.categories) setCategories(data.categories);
 
-        // Generate dynamic live viewers for new products to build trust and urgency
         const newViewers: { [key: string]: number } = {};
         data.products.forEach((p: any) => {
-          newViewers[p._id] = Math.floor(Math.random() * (45 - 12 + 1)) + 12; // Random number between 12 and 45
+          newViewers[p._id] = Math.floor(Math.random() * (45 - 12 + 1)) + 12; 
         });
         setViewers(prev => ({ ...prev, ...newViewers }));
       }
@@ -118,7 +143,6 @@ export default function HomePage() {
     return () => { if (observerRef.current) observerRef.current.disconnect(); };
   }, [page, loading, loadingMore, hasMore, searchQuery, selectedCategory]);
 
-  // Mock Reviews Data for Wall of Love
   const verifiedReviews = [
     { name: "Ahmed K.", location: "Lahore", text: "Exceptional quality. The unboxing experience alone feels like a true luxury brand.", rating: 5 },
     { name: "Zainab R.", location: "Karachi", text: "Customer service is top tier. Received my order in 48 hours and it's perfect.", rating: 5 },
@@ -294,7 +318,7 @@ export default function HomePage() {
               const viewerCount = viewers[product._id] || 15;
 
               return (
-                <div key={product._id} className="group flex flex-col bg-white rounded-xl md:rounded-2xl overflow-hidden border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 relative">
+                <div key={product._id} className="group flex flex-col bg-white rounded-xl overflow-hidden border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 relative">
                   
                   {/* Dynamic Social Activity Badge */}
                   <div className="absolute top-2.5 left-2.5 z-20 bg-white/95 backdrop-blur-md px-2 py-1 rounded-md flex items-center gap-1.5 shadow-sm border border-slate-100/50">
@@ -319,11 +343,13 @@ export default function HomePage() {
 
                   <div className="p-3.5 flex flex-col flex-1 relative bg-white">
                     <Link href={`/products/${product.slug}`}>
-                      <h2 className="text-[11px] md:text-xs font-bold text-slate-800 mb-1 line-clamp-1 group-hover:text-slate-500 transition-colors">{product.name}</h2>
+                      <h2 className="text-[12px] md:text-[13px] font-semibold text-slate-900 mb-1 line-clamp-1 group-hover:text-slate-600 transition-colors tracking-wide" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        {product.name}
+                      </h2>
                     </Link>
                     
                     <div className="flex items-center justify-between mt-auto">
-                      <p className="text-sm md:text-base font-black text-black">Rs. {product.price}</p>
+                      <p className="text-[12px] md:text-[13px] font-semibold text-slate-600 tracking-wider">Rs. {product.price}</p>
                       <div className="flex items-center gap-1.5">
                         <button onClick={(e) => handleColorSelect(product._id, "#ffffff", e)} className={`w-3.5 h-3.5 rounded-full bg-white border shadow-sm transition-all ${activeColor === "#ffffff" || !activeColor ? "border-slate-800 scale-110" : "border-slate-200 hover:scale-110"}`} />
                         <button onClick={(e) => handleColorSelect(product._id, "#0f172a", e)} className={`w-3.5 h-3.5 rounded-full bg-slate-900 border shadow-sm transition-all ${activeColor === "#0f172a" ? "border-slate-800 ring-1 ring-slate-300 scale-110" : "border-transparent hover:scale-110"}`} />
@@ -336,9 +362,17 @@ export default function HomePage() {
                       <span className="text-[8px] font-semibold text-slate-500 uppercase tracking-widest">Secured Checkout</span>
                     </div>
 
-                    <div className="mt-3 pt-3 border-t border-slate-50 flex gap-1.5">
-                      <Link href={`/products/${product.slug}`} className="flex-1 flex items-center justify-center bg-black text-white py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors shadow-sm">Details</Link>
-                      <Link href={`/products/${product.slug}`} className="flex-1 flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-900 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-colors border border-slate-100">+ Cart</Link>
+                    <div className="mt-3.5 pt-3.5 border-t border-slate-100 flex gap-2">
+                      <Link href={`/products/${product.slug}`} className="flex-1 flex items-center justify-center bg-black text-white py-2.5 rounded text-[9px] font-bold uppercase tracking-[0.2em] hover:bg-slate-800 transition-colors shadow-sm">
+                        Details
+                      </Link>
+                      <button 
+                        onClick={(e) => handleAddToCart(product, e)}
+                        disabled={addingItemId === product._id}
+                        className="flex-1 flex items-center justify-center bg-white text-slate-900 py-2.5 rounded text-[9px] font-bold uppercase tracking-[0.2em] transition-colors border border-slate-200 hover:border-black shadow-sm disabled:bg-slate-50 disabled:text-slate-400 cursor-pointer"
+                      >
+                        {addingItemId === product._id ? "Adding..." : "+ Cart"}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -347,7 +381,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 6. VERIFIED BUYER WALL OF LOVE (New!) */}
+        {/* 6. VERIFIED BUYER WALL OF LOVE */}
         <div className="my-16 md:my-20 overflow-hidden relative">
           <div className="text-center mb-6">
             <span className="bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-full text-[8px] font-black tracking-[0.2em] uppercase mb-2 inline-flex items-center gap-1">

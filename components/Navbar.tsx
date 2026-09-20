@@ -137,33 +137,89 @@ export default function Navbar() {
             Track Order
           </Link>
 
-          <Link href="/admin" className="text-xs md:text-sm font-extrabold text-slate-400 hover:text-black transition-colors relative py-1 hover:scale-105">
-            Admin
-          </Link>
-
-          {/* DYNAMIC: Profile Widget or Sign In Button */}
+          {/* DYNAMIC: VIP Dropdown Widget or Sign In Button */}
           {status === "authenticated" && session?.user ? (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100/80 rounded-full border border-slate-200">
+            <div className="relative group z-50">
+              
+              {/* Profile Trigger Button */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 cursor-pointer rounded-full border border-slate-200 transition-all duration-300 group-hover:shadow-sm">
                 <img 
                   src={session.user.image || `https://ui-avatars.com/api/?name=${session.user.name}&background=0D8ABC&color=fff`} 
                   alt="Profile" 
-                  className="w-6 h-6 rounded-full shadow-sm"
+                  className="w-7 h-7 rounded-full shadow-sm border border-white"
                   referrerPolicy="no-referrer"
                 />
-                <span className="text-xs font-bold text-slate-800">
+                <span className="text-xs font-bold text-slate-800 pr-1">
                   {session.user.name?.split(' ')[0]}
                 </span>
               </div>
-              <button 
-                onClick={() => {
-                  sessionStorage.removeItem("welcome_toast_shown");
-                  signOut();
-                }}
-                className="text-xs font-extrabold uppercase tracking-wider text-black bg-white hover:bg-red-600 hover:text-white px-4 py-2.5 rounded-full transition-all duration-300 hover:scale-105 border border-slate-200 shadow-sm"
-              >
-                Logout
-              </button>
+
+              {/* VIP Dropdown Panel */}
+              <div className="absolute top-[100%] right-0 mt-4 w-[280px] bg-white rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0 overflow-hidden flex flex-col">
+                
+                {/* 1. User VIP Identity (Header) */}
+                <div className="p-5 border-b border-slate-100 bg-[#FAFAFA]">
+                  <p className="font-black text-sm text-slate-900 truncate">{session.user.name}</p>
+                  <p className="text-[10px] font-semibold text-slate-500 truncate mt-0.5">{session.user.email}</p>
+                  <div className="mt-3 inline-flex items-center gap-1.5 bg-black text-white px-2.5 py-1.5 rounded-md text-[8px] font-black uppercase tracking-[0.2em] shadow-sm">
+                    <span className="text-amber-400">✦</span> Customer Level
+                  </div>
+                </div>
+
+                {/* VIP Links */}
+                <div className="p-3 flex flex-col gap-1">
+                  {/* 2. My Orders & Returns */}
+                  <Link href="/my-orders" className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-black hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-3">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                    My Orders & Returns
+                  </Link>
+
+                  {/* 3. Personal Lookbook (Wishlist) */}
+                  <Link href="/lookbook" className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-black hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-3">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                    Personal Lookbook
+                  </Link>
+
+                  {/* 4. Address Book & Preferences */}
+                  <Link href="/address" className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-black hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-3">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    My Address
+          
+                </Link>
+
+                  {/* 5. Premium Support / Concierge */}
+                  <a href="https://wa.me/923000000000" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-black hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-3">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                    Customer Service
+                  </a>
+
+                  {/* 6. Admin Access (Smart Logic) - Sirf Admin Email par show hoga */}
+                  {(session.user.email === "picsmarriage86@gmail.com" || (session as any).user?.role === "admin") && (
+                    <Link href="/admin" className="px-4 py-2.5 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-between mt-1 border border-transparent hover:border-blue-100">
+                      <div className="flex items-center gap-3">
+                        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                        Admin Portal
+                      </div>
+                      <span className="text-[8px] uppercase tracking-widest font-black bg-blue-100 px-1.5 py-0.5 rounded text-blue-600">Secure</span>
+                    </Link>
+                  )}
+                </div>
+
+                {/* 7. Secure Logout */}
+                <div className="p-3 border-t border-slate-100">
+                  <button 
+                    onClick={() => {
+                      sessionStorage.removeItem("welcome_toast_shown");
+                      signOut();
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-between"
+                  >
+                    Sign Out
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  </button>
+                </div>
+              </div>
+
             </div>
           ) : (
             <Link 
@@ -214,20 +270,41 @@ export default function Navbar() {
 
       {/* MOBILE DROPDOWN MENU */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-[0_30px_60px_rgba(0,0,0,0.1)] py-8 px-8 flex flex-col gap-6 z-40 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-[0_30px_60px_rgba(0,0,0,0.1)] py-6 px-6 flex flex-col gap-6 z-40 animate-in fade-in slide-in-from-top-2 duration-300 max-h-[85vh] overflow-y-auto">
           
-          {/* MOBILE PROFILE WIDGET */}
+          {/* MOBILE VIP PROFILE WIDGET */}
           {status === "authenticated" && session?.user && (
-            <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
-              <img 
-                src={session.user.image || `https://ui-avatars.com/api/?name=${session.user.name}&background=0D8ABC&color=fff`} 
-                alt="Profile" 
-                className="w-12 h-12 rounded-full border-2 border-white shadow-md"
-                referrerPolicy="no-referrer"
-              />
-              <div>
-                <div className="text-sm font-black text-slate-900">{session.user.name}</div>
-                <div className="text-xs font-medium text-slate-500 truncate w-48">{session.user.email}</div>
+            <div className="flex flex-col gap-4 p-5 bg-[#FAFAFA] rounded-2xl border border-slate-100 mb-2">
+              <div className="flex items-center gap-4">
+                <img 
+                  src={session.user.image || `https://ui-avatars.com/api/?name=${session.user.name}&background=0D8ABC&color=fff`} 
+                  alt="Profile" 
+                  className="w-12 h-12 rounded-full border-2 border-white shadow-md"
+                  referrerPolicy="no-referrer"
+                />
+                <div>
+                  <div className="text-sm font-black text-slate-900">{session.user.name}</div>
+                  <div className="text-xs font-medium text-slate-500 truncate w-48">{session.user.email}</div>
+                </div>
+              </div>
+              <div className="inline-flex items-center justify-center gap-1.5 bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] shadow-sm w-max">
+                <span className="text-amber-400">✦</span> Customer Level
+              </div>
+
+              {/* Mobile VIP Links */}
+              <div className="flex flex-col gap-2 mt-2 pt-4 border-t border-slate-200">
+                <Link href="/lookbook" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-bold text-slate-600 hover:text-black py-2 flex items-center gap-3">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                  Personal Lookbook
+                </Link>
+                <Link href="/address" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-bold text-slate-600 hover:text-black py-2 flex items-center gap-3">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  Address Book
+                </Link>
+                <a href="https://wa.me/923000000000" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-slate-600 hover:text-black py-2 flex items-center gap-3">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                  VIP Concierge
+                </a>
               </div>
             </div>
           )}
@@ -254,7 +331,7 @@ export default function Navbar() {
                   sessionStorage.removeItem("welcome_toast_shown");
                   signOut();
                 }} 
-                className="text-lg font-black text-red-600 flex items-center justify-between group text-left"
+                className="text-lg font-black text-red-600 flex items-center justify-between group text-left mt-2"
               >
                 <span>Sign Out</span> 
                 <span className="text-red-300 group-hover:translate-x-1 transition-transform">→</span>
@@ -268,9 +345,15 @@ export default function Navbar() {
           </div>
           
           <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
-            <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-black transition-colors">
-              Admin Portal
-            </Link>
+             {/* Admin Logic for Mobile */}
+             {(session?.user?.email === "admin@gmail.com" || session?.user?.email === "marriage@gmail.com" || (session as any)?.user?.role === "admin") ? (
+                <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-md">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  Admin Portal
+                </Link>
+             ) : (
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Secure Connect</span>
+             )}
             <span className="text-[10px] font-bold text-slate-400">Raonic v2.4</span>
           </div>
         </div>

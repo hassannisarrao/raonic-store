@@ -16,11 +16,12 @@ type CartItem = {
 type CartContextType = {
   cart: CartItem[];
   cartTotal: number;
-  isCartOpen: boolean;             // NEW: Tracks if the sidebar is open
-  openCart: () => void;            // NEW: Function to open sidebar
-  closeCart: () => void;           // NEW: Function to close sidebar
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
   addToCart: (item: CartItem) => void;
   removeFromCart: (index: number) => void;
+  updateQuantity: (index: number, quantity: number) => void; // NEW: Quantity update function
   clearCart: () => void;
 };
 
@@ -30,12 +31,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false); 
   
-  // NEW: Sidebar state
   const [isCartOpen, setIsCartOpen] = useState(false);
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
 
-  // 1. Load cart from local storage on load
   useEffect(() => {
     const savedCart = localStorage.getItem("raonic_cart");
     if (savedCart) {
@@ -48,7 +47,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsLoaded(true); 
   }, []);
 
-  // 2. Save cart to local storage ONLY after it has been loaded
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("raonic_cart", JSON.stringify(cart));
@@ -79,12 +77,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
     
     toast.success(`${product.name} added to cart!`);
-    openCart(); // NEW: Automatically open the slide-out cart when an item is added!
+    openCart(); 
   };
 
   const removeFromCart = (index: number) => {
     setCart((prev) => prev.filter((_, i) => i !== index));
     toast.error("Item removed from cart");
+  };
+
+  // NEW: Function to increase or decrease item quantity
+  const updateQuantity = (index: number, quantity: number) => {
+    setCart((prev) => {
+      const newCart = [...prev];
+      newCart[index].quantity = quantity;
+      return newCart;
+    });
   };
 
   const clearCart = () => {
@@ -96,11 +103,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     <CartContext.Provider value={{ 
       cart, 
       cartTotal, 
-      isCartOpen,    // Exported for the UI
-      openCart,      // Exported for the UI
-      closeCart,     // Exported for the UI
+      isCartOpen,
+      openCart,
+      closeCart,
       addToCart, 
       removeFromCart, 
+      updateQuantity, // Exporting new function
       clearCart 
     }}>
       {children}
