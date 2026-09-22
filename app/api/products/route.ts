@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
     // Apply regex search on product name using sanitized keywords
     if (cleanQuery) {
-      query.name = { $regex: cleanQuery, $options: "i" };
+      query.name = { $regex: cleanQuery,$options: "i" };
     }
 
     // Apply price constraint if detected in natural language (e.g. "under 2000")
@@ -81,32 +81,42 @@ export async function POST(request: Request) {
     const price = formData.get("price") as string;
     const compareAtPrice = formData.get("compareAtPrice") as string;
     const category = formData.get("category") as string;
-    const description = formData.get("description") as string; // Accepts raw HTML
+    const description = formData.get("description") as string; 
     
     // Create URL-friendly slug
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
 
-    // Unpackage Variants
-    const variantsString = formData.get("variants") as string;
-    const variants = variantsString ? JSON.parse(variantsString) : [];
+    // Handle Options & Variants (Matrix)
+    const optionsString = formData.get("options") as string;
+    const options = optionsString ? JSON.parse(optionsString) : [];
 
-    // === Multi-Image Upload Logic ===
-    const imageFiles = formData.getAll("images") as File[];
-    const legacyImage = formData.get("image") as File; // Keeps legacy UI working
-    
-    let imageUrl = "";
+    const matrixString = formData.get("matrix") as string;
+    const variantsString = formData.get("variants") as string;
+    let variants = [];
+    if (matrixString) {
+      variants = JSON.parse(matrixString);
+    } else if (variantsString) {
+      variants = JSON.parse(variantsString);
+    }
+
+    // === Multi-Image Upload Logic (Supports both Dashboard & Legacy) ===
+    const directImageUrlsString = formData.get("directImageUrls") as string;
     let imagesArray: string[] = [];
 
-    // 1. Process legacy single image if it exists
+    if (directImageUrlsString) {
+      imagesArray = JSON.parse(directImageUrlsString);
+    }
+
+    const imageFiles = formData.getAll("images") as File[];
+    const legacyImage = formData.get("image") as File;
+    
     if (legacyImage && legacyImage.size > 0) {
       const buffer = Buffer.from(await legacyImage.arrayBuffer());
       const base64Image = `data:${legacyImage.type};base64,${buffer.toString("base64")}`;
       const uploadResponse = await cloudinary.uploader.upload(base64Image, { folder: "raonic_store" });
-      imageUrl = uploadResponse.secure_url;
       imagesArray.push(uploadResponse.secure_url);
     }
 
-    // 2. Process multi-image gallery uploads
     if (imageFiles && imageFiles.length > 0) {
       for (const file of imageFiles) {
         if (file.size > 0) {
@@ -114,12 +124,11 @@ export async function POST(request: Request) {
           const base64Image = `data:${file.type};base64,${buffer.toString("base64")}`;
           const uploadResponse = await cloudinary.uploader.upload(base64Image, { folder: "raonic_store" });
           imagesArray.push(uploadResponse.secure_url);
-          
-          // Make the first uploaded image the main thumbnail
-          if (!imageUrl) imageUrl = uploadResponse.secure_url;
         }
       }
     }
+
+    let imageUrl = imagesArray.length > 0 ? imagesArray[0] : "";
 
     // Save to Database
     const newProduct = await Product.create({
@@ -131,6 +140,7 @@ export async function POST(request: Request) {
       description,
       imageUrl,
       images: imagesArray,
+      options,
       variants, 
     });
 
