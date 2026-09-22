@@ -1,29 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/components/CartContext";
 
 export default function ProductDetail() {
   const params = useParams(); 
   const slug = params.slug;
+  const router = useRouter(); 
   const { addToCart } = useCart();
   
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Dynamic Selections & Pricing
+  // Dynamic Selections, Pricing & Quantity
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
   const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const [quantity, setQuantity] = useState<number>(1); 
+
+  // Image Gallery State
+  const [currentImageIdx, setCurrentImageIdx] = useState(0);
+  const [allImages, setAllImages] = useState<string[]>([]);
 
   // Conversion States
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState({ hours: 16, minutes: 48, seconds: 35 });
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [stockLeft, setStockLeft] = useState(7); 
   
-  // New UI States
-  const [activeAccordion, setActiveAccordion] = useState<string>("description");
+  // Accordion State (This was missing)
+  const [activeAccordion, setActiveAccordion] = useState<string>("");
+
+  // Mobile Scroll Ref for Carousel
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   // 1. Fetch Product Data
   useEffect(() => {
@@ -36,6 +45,11 @@ export default function ProductDetail() {
           setProduct(data);
           setCurrentPrice(data.price); 
           setStockLeft(Math.floor(Math.random() * 10) + 3); 
+          
+          const imagesArray = data.images && data.images.length > 0 
+            ? data.images 
+            : (data.imageUrl ? [data.imageUrl] : []);
+          setAllImages(imagesArray);
         }
       } catch (error) {
         console.error("Error fetching product details:", error);
@@ -64,18 +78,21 @@ export default function ProductDetail() {
     }
   }, [selectedOptions, product]);
 
-  // 3. Countdown Timer & Scroll Tracker
+  // 3. Countdown Timer (Visual) & Scroll Tracker
   useEffect(() => {
     const timer = setInterval(() => {
-      const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setHours(24, 0, 0, 0);
-      const diff = tomorrow.getTime() - now.getTime();
-      
-      setTimeLeft({
-        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((diff / 1000 / 60) % 60),
-        seconds: Math.floor((diff / 1000) % 60)
+      setTimeLeft(prev => {
+        let { hours, minutes, seconds } = prev;
+        if (seconds > 0) seconds--;
+        else {
+          seconds = 59;
+          if (minutes > 0) minutes--;
+          else {
+            minutes = 59;
+            if (hours > 0) hours--;
+          }
+        }
+        return { hours, minutes, seconds };
       });
     }, 1000);
 
@@ -90,20 +107,25 @@ export default function ProductDetail() {
     };
   }, []);
 
+  const handleMobileScroll = () => {
+    if (carouselRef.current) {
+      const scrollPosition = carouselRef.current.scrollLeft;
+      const width = carouselRef.current.offsetWidth;
+      const currentIndex = Math.round(scrollPosition / width);
+      setCurrentImageIdx(currentIndex);
+    }
+  };
+
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
-      <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin mb-4"></div>
-      <p className="text-gray-500 font-bold tracking-widest uppercase text-sm">Preparing Product...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <div className="w-8 h-8 border-[2px] border-slate-100 border-t-black rounded-full animate-spin mb-4"></div>
     </div>
   );
 
   if (!product) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
-      <h2 className="text-3xl font-black text-gray-900 mb-2">Product Not Found</h2>
-      <p className="text-gray-500 mb-6">This item might have been removed or is unavailable.</p>
-      <Link href="/" className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors">
-        Return to Store
-      </Link>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <h2 className="text-xl font-bold text-slate-900 mb-2">Product Not Found</h2>
+      <Link href="/" className="bg-black text-white px-8 py-3 rounded-md font-medium">Return to Store</Link>
     </div>
   );
 
@@ -111,264 +133,219 @@ export default function ProductDetail() {
     setSelectedOptions((prev) => ({ ...prev, [optionName]: value }));
   };
 
-  const handleAddToCart = () => {
+  const getValidatedProductData = () => {
     const optionsList = product.options || [];
-    
     for (const opt of optionsList) {
       if (!selectedOptions[opt.name]) {
-        alert(`Please select a ${opt.name} first.`);
-        return;
+        alert(`Please select your preferred ${opt.name} first.`);
+        return null;
       }
     }
-
     const optionKeys = optionsList.map((o: any) => o.name);
     const comboTitle = optionKeys.map((key: string) => selectedOptions[key]).join(" / ");
     
-    addToCart({ 
+    return { 
       ...product, 
       price: currentPrice, 
       color: selectedOptions["Color"] || selectedOptions["color"] || comboTitle, 
-      size: selectedOptions["Size"] || selectedOptions["size"] || "" 
-    });
+      size: selectedOptions["Size"] || selectedOptions["size"] || "",
+      quantity: quantity
+    };
   };
 
-  // SEO JSON-LD Structured Data
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    "name": product.name,
-    "image": product.imageUrl,
-    "description": product.description ? product.description.replace(/<[^>]*>?/gm, '') : `Buy ${product.name} at Raonic.`,
-    "sku": product._id,
-    "offers": {
-      "@type": "Offer",
-      "url": `https://raonic-store.vercel.app/products/${product.slug}`,
-      "priceCurrency": "PKR",
-      "price": currentPrice,
-      "availability": stockLeft > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      "itemCondition": "https://schema.org/NewCondition"
+  const handleAddToCart = () => {
+    const validData = getValidatedProductData();
+    if (validData) {
+      addToCart(validData);
+    }
+  };
+
+  const handleBuyItNow = () => {
+    const validData = getValidatedProductData();
+    if (validData) {
+      addToCart(validData);
+      router.push('/checkout'); 
     }
   };
 
   return (
-    <main className="min-h-screen bg-white font-sans text-gray-900 pb-32">
+    <main className="min-h-screen bg-white font-sans text-slate-900 pb-32">
       
-      {/* Inject Google SEO Structured Data */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <style dangerouslySetInnerHTML={{__html: `
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Rich Text styling for Admin Description */
+        .admin-description img { width: 100%; border-radius: 12px; margin-top: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .admin-description h2, .admin-description h3 { font-size: 1.25rem; font-weight: 900; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111; }
+        .admin-description p { font-size: 0.95rem; line-height: 1.7; color: #444; margin-bottom: 1rem; }
+      `}} />
 
-      <div className="max-w-7xl mx-auto px-6 pt-8 md:pt-16 pb-12 lg:pb-24">
+      {/* TOP ANNOUNCEMENT BAR */}
+      <div className="w-full bg-[#3B5EDF] text-white text-center py-2.5 px-4 text-[10px] md:text-xs font-bold tracking-wider flex items-center justify-center flex-wrap gap-1 md:gap-2 z-40 relative mt-16 md:mt-20">
+        <span>BIGGEST SALE | 50% OFF | SALE ENDS IN</span>
+        <span className="bg-white/20 px-1.5 py-0.5 rounded">{String(timeLeft.hours).padStart(2, '0')}h</span>
+        <span className="bg-white/20 px-1.5 py-0.5 rounded">{String(timeLeft.minutes).padStart(2, '0')}m</span>
+        <span className="bg-white/20 px-1.5 py-0.5 rounded">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+      </div>
+
+      <div className="max-w-[1200px] mx-auto pt-6 pb-12 lg:pb-24">
         
-        {/* Breadcrumb Navigation */}
-        <nav className="mb-8 md:mb-12">
-          <Link href="/" className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors flex items-center gap-2 w-fit">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            Back to Collection
-          </Link>
-        </nav>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+        <div className="flex flex-col lg:flex-row gap-0 lg:gap-12 items-start">
           
-          {/* LEFT SIDE: STICKY IMAGE GALLERY */}
-          <div className="relative">
-            <div className="sticky top-28 bg-[#F8FAFC] rounded-[2.5rem] p-8 md:p-12 flex items-center justify-center aspect-square md:aspect-[4/5] border border-gray-100 shadow-sm overflow-hidden group">
-              {product.imageUrl ? (
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.name} 
-                  className="w-full h-full object-cover rounded-2xl group-hover:scale-105 transition-transform duration-700 ease-in-out" 
-                />
-              ) : (
-                <span className="text-gray-400 font-medium tracking-wide uppercase text-sm">No Image Available</span>
+          {/* LEFT SIDE: SWIPEABLE GALLERY */}
+          <div className="w-full lg:w-1/2 relative bg-[#F5F5F7]">
+            {/* Desktop Gallery */}
+            <div className="hidden lg:block relative aspect-[4/5]">
+               {allImages.length > 0 ? (
+                  <img src={allImages[currentImageIdx]} alt={product.name} className="w-full h-full object-cover" />
+               ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">No Image</div>
+               )}
+            </div>
+
+            {/* Mobile Swipeable Gallery */}
+            <div className="lg:hidden relative w-full aspect-[4/5]">
+              <div 
+                ref={carouselRef}
+                onScroll={handleMobileScroll}
+                className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar w-full h-full"
+              >
+                {allImages.length > 0 ? (
+                  allImages.map((img, idx) => (
+                    <div key={idx} className="min-w-full w-full h-full snap-center bg-white">
+                      <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))
+                ) : (
+                  <div className="min-w-full w-full h-full snap-center flex items-center justify-center">
+                    No Image
+                  </div>
+                )}
+              </div>
+              
+              {/* Carousel Dots */}
+              {allImages.length > 1 && (
+                <div className="absolute -bottom-6 left-0 w-full flex justify-center gap-1.5 z-10">
+                  {allImages.map((_, idx) => (
+                    <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${currentImageIdx === idx ? 'w-5 bg-blue-600' : 'w-1.5 bg-gray-300'}`} />
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
-          {/* RIGHT SIDE: DETAILS & CHECKOUT */}
-          <div className="flex flex-col pt-2 lg:pt-8">
+          {/* RIGHT SIDE: PRODUCT INFO */}
+          <div className="w-full lg:w-1/2 flex flex-col pt-10 px-5 md:px-8">
             
-            {/* Urgency Banner */}
-            <div className="flex items-center justify-between py-4 px-5 border border-gray-100 rounded-2xl mb-8 bg-gray-50/50">
-              <div className="flex items-center gap-3">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                </span>
-                <span className="text-xs font-bold uppercase tracking-widest text-gray-900">Sale Ends In</span>
-              </div>
-              <span className="tabular-nums font-black text-lg text-red-600 tracking-wider">
-                {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-xs font-black tracking-[0.2em] uppercase text-gray-400">
-                {product.category || "Premium Collection"}
-              </span>
-              <div className="flex items-center text-amber-400">
-                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                <span className="text-[10px] text-gray-600 font-bold ml-1 uppercase tracking-widest">(4.9/5 Reviews)</span>
-              </div>
-            </div>
-
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-4 text-gray-900 leading-tight">
+            {/* Title */}
+            <h1 className="text-2xl md:text-3xl font-black mb-3 text-slate-900 leading-tight">
               {product.name}
             </h1>
             
-            <div className="mb-6">
-              <span className="text-3xl md:text-4xl font-black text-black">Rs. {currentPrice}</span>
+            {/* Price & Compare */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-xl font-black text-blue-700">Rs. {currentPrice}</span>
               {product.compareAtPrice && currentPrice < product.compareAtPrice && (
-                <span className="ml-4 text-xl md:text-2xl font-bold text-gray-400 line-through decoration-2">Rs. {product.compareAtPrice}</span>
+                <span className="text-sm font-bold text-slate-400 line-through">Rs. {product.compareAtPrice}</span>
               )}
             </div>
 
-            <div className="flex items-center gap-2 mb-10">
-              <div className="w-2 h-2 rounded-full bg-gray-900"></div>
-              <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">Only {stockLeft} items left in stock</p>
+            {/* Trust Tick Marks */}
+            <div className="flex flex-col gap-2 mb-6 border-b border-gray-100 pb-6">
+              <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
+                <span className="flex items-center justify-center w-4 h-4 rounded bg-green-500 text-white"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></span>
+                Trusted by 50,000+ Happy Customers
+              </div>
+              <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
+                <span className="flex items-center justify-center w-4 h-4 rounded bg-green-500 text-white"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></span>
+                30-Day Money-Back Guarantee
+              </div>
+              <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
+                <span className="flex items-center justify-center w-4 h-4 rounded bg-green-500 text-white"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></span>
+                Hassle-Free Returns - No Questions Asked
+              </div>
             </div>
 
-            {/* DYNAMICALLY RENDER ALL OPTIONS */}
-            <div className="space-y-8 mb-10">
+            {/* DYNAMIC OPTIONS */}
+            <div className="space-y-5 mb-8">
               {product.options && product.options.map((opt: any) => (
                 <div key={opt.name}>
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    Select {opt.name}
-                    {selectedOptions[opt.name] && <span className="text-gray-400 font-medium normal-case">- {selectedOptions[opt.name]}</span>}
-                  </h3>
-                  
-                  {opt.name.toLowerCase() === "color" ? (
-                    <div className="flex flex-wrap gap-4">
-                      {opt.values.map((val: string) => {
-                        const isSelected = selectedOptions[opt.name] === val;
-                        const cssColor = val.toLowerCase().replace(/\s+/g, "");
-                        return (
-                          <button
-                            key={val}
-                            onClick={() => handleOptionSelect(opt.name, val)}
-                            title={val}
-                            className={`relative w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center bg-white ${isSelected ? "border-black scale-110 shadow-md" : "border-gray-200 hover:border-gray-400"}`}
-                          >
-                            <span className="w-9 h-9 rounded-full shadow-inner border border-black/10" style={{ backgroundColor: cssColor }} />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-3">
-                      {opt.values.map((val: string) => (
+                  <div className="mb-2">
+                    <h3 className="text-sm font-bold text-slate-900">{opt.name}</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {opt.values.map((val: string) => {
+                      const isSelected = selectedOptions[opt.name] === val;
+                      return (
                         <button
                           key={val}
                           onClick={() => handleOptionSelect(opt.name, val)}
-                          className={`px-6 py-3.5 rounded-2xl text-sm font-bold transition-all border-2 ${selectedOptions[opt.name] === val ? "bg-black text-white border-black shadow-lg scale-105" : "bg-white text-gray-600 border-gray-200 hover:border-gray-900 hover:text-black"}`}
+                          className={`px-4 py-2 text-xs font-bold rounded-full transition-all border ${isSelected ? "bg-black text-white border-black" : "bg-white text-slate-700 border-gray-300 hover:border-gray-500"}`}
                         >
                           {val}
                         </button>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Add to Cart Button */}
-            <button 
-              onClick={handleAddToCart} 
-              className="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-gray-800 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 mb-8"
-            >
-              Add to Cart
-            </button>
-
-            {/* Trust Badges */}
-            <div className="grid grid-cols-2 gap-4 py-6 border-y border-gray-100 mb-10 bg-gray-50/50 rounded-2xl px-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center text-black shrink-0">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-900">Free Shipping</p>
-                  <p className="text-[10px] text-gray-500 font-medium">On local orders</p>
-                </div>
+            {/* MAIN CHECKOUT ACTIONS (Desktop Only) */}
+            <div className="hidden md:flex items-center gap-3 mb-6">
+              <div className="flex items-center justify-between border border-gray-300 rounded-lg px-2 h-12 w-28 bg-white shrink-0">
+                 <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="text-xl font-light px-2 text-gray-500 hover:text-black">−</button>
+                 <span className="font-bold text-sm text-black">{quantity}</span>
+                 <button onClick={() => setQuantity(q => q + 1)} className="text-xl font-light px-2 text-gray-500 hover:text-black">+</button>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center text-black shrink-0">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-900">100% Secure</p>
-                  <p className="text-[10px] text-gray-500 font-medium">Protected checkout</p>
-                </div>
-              </div>
+              <button 
+                onClick={handleBuyItNow} 
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white h-12 rounded-lg font-black uppercase tracking-wider text-sm shadow-[0_4px_15px_rgba(245,158,11,0.3)] transition-all flex flex-col items-center justify-center leading-none"
+              >
+                <span>GET YOURS - RS. {currentPrice * quantity}</span>
+              </button>
             </div>
 
-            {/* UPGRADED: Collapsible Accordions for Details */}
-            <div className="border-t border-gray-100 divide-y divide-gray-100">
-              
-              {/* Product Description Accordion */}
-              <div className="py-4">
-                <button onClick={() => setActiveAccordion(activeAccordion === "description" ? "" : "description")} className="w-full flex items-center justify-between py-2 text-left">
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Product Details</h3>
-                  <svg className={`w-4 h-4 transition-transform ${activeAccordion === "description" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === "description" ? "max-h-[1000px] mt-4" : "max-h-0"}`}>
-                  {product.description ? (
-                    <div className="prose prose-gray max-w-none text-gray-500 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: product.description }} />
-                  ) : (
-                    <p className="text-gray-500 text-sm leading-relaxed">No description provided for this product.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Shipping Accordion */}
-              <div className="py-4">
-                <button onClick={() => setActiveAccordion(activeAccordion === "shipping" ? "" : "shipping")} className="w-full flex items-center justify-between py-2 text-left">
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Shipping & Delivery</h3>
-                  <svg className={`w-4 h-4 transition-transform ${activeAccordion === "shipping" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === "shipping" ? "max-h-[200px] mt-4" : "max-h-0"}`}>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-2">• Free nationwide shipping on all orders over Rs. 5000.</p>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-2">• Cash on Delivery available across Pakistan.</p>
-                  <p className="text-gray-500 text-sm leading-relaxed">• Orders are processed and dispatched within 24-48 hours.</p>
-                </div>
-              </div>
-
-              {/* Returns Accordion */}
-              <div className="py-4">
-                <button onClick={() => setActiveAccordion(activeAccordion === "returns" ? "" : "returns")} className="w-full flex items-center justify-between py-2 text-left">
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Returns & Warranty</h3>
-                  <svg className={`w-4 h-4 transition-transform ${activeAccordion === "returns" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === "returns" ? "max-h-[200px] mt-4" : "max-h-0"}`}>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-2">• 7-Day hassle-free return and exchange policy.</p>
-                  <p className="text-gray-500 text-sm leading-relaxed">• Comprehensive Raonic quality guarantee on all technology and lifestyle products.</p>
-                </div>
-              </div>
-
+            {/* Promo Box */}
+            <div className="bg-[#E8F3F4] border border-[#BDE0E2] rounded-lg p-3 flex items-center justify-center gap-3 mb-8">
+               <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+               <span className="text-[11px] font-black text-teal-900 tracking-wide">FREE MYSTERY GIFT with orders over Rs. 5000!</span>
+            </div>
+            
+            {/* Trust Seals */}
+            <div className="flex flex-col items-center justify-center pt-4 pb-8 border-b border-gray-100">
+               <span className="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-widest">Guaranteed Safe Checkout</span>
+               <div className="flex items-center gap-4 opacity-70 grayscale">
+                 <span className="text-xs font-black italic">Mcafee</span>
+                 <span className="text-xs font-black italic">NORTON</span>
+                 <span className="text-xs font-black italic">TRUSTe</span>
+               </div>
             </div>
 
-            {/* UPGRADED: Verified Customer Reviews Section */}
-            <div className="mt-12 p-8 bg-gray-50 rounded-[2rem] border border-gray-100">
-              <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-6 flex items-center gap-2">
-                Customer Reviews
-                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[9px] tracking-widest">VERIFIED</span>
-              </h3>
-              
-              <div className="space-y-6">
-                <div className="border-b border-gray-200 pb-6">
-                  <div className="flex items-center gap-1 text-amber-400 mb-2">
-                    {[1,2,3,4,5].map(i => <svg key={i} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
-                  </div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">Absolutely premium quality.</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed mb-3">&quot;The build quality is incredible. Exactly what I was looking for. Delivery was fast and the packaging felt like a luxury unboxing experience.&quot;</p>
-                  <p className="text-[10px] font-bold tracking-wider uppercase text-gray-400">Usman A. - Verified Buyer</p>
-                </div>
-                
-                <div>
-                  <div className="flex items-center gap-1 text-amber-400 mb-2">
-                    {[1,2,3,4,5].map(i => <svg key={i} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
-                  </div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">Worth every penny.</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed mb-3">&quot;I was skeptical at first, but the product completely exceeded my expectations. Raonic customer service is also top-notch.&quot;</p>
-                  <p className="text-[10px] font-bold tracking-wider uppercase text-gray-400">Sara K. - Verified Buyer</p>
-                </div>
+            {/* OPEN ADMIN DESCRIPTION (RICH TEXT) */}
+            <div className="mt-8 mb-12">
+               {product.description ? (
+                 <div 
+                   className="admin-description" 
+                   dangerouslySetInnerHTML={{ __html: product.description }} 
+                 />
+               ) : (
+                 <div className="admin-description">
+                   <h3>Key Features!</h3>
+                   <p>Experience the ultimate blend of comfort and style. Our exclusive piece is designed to provide you with unrestricted movement and absolute confidence throughout your day.</p>
+                   <p>✓ Premium build quality<br/>✓ All-day comfort<br/>✓ Versatile aesthetic</p>
+                 </div>
+               )}
+            </div>
+
+            {/* Standard Shipping Dropdown */}
+            <div className="border-t border-gray-200 py-4">
+              <button onClick={() => setActiveAccordion(activeAccordion === "shipping" ? "" : "shipping")} className="w-full flex items-center justify-between text-left group">
+                <h3 className="text-sm font-bold text-slate-900 tracking-wide">Shipping & Returns</h3>
+                <span className="text-xl font-light text-slate-400">{activeAccordion === "shipping" ? "−" : "+"}</span>
+              </button>
+              <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === "shipping" ? "max-h-[300px] mt-3" : "max-h-0"}`}>
+                <p className="text-sm text-slate-600 leading-relaxed">Free nationwide shipping. 30-Day Money back guarantee on all items. Fast dispatch within 24 hours.</p>
               </div>
             </div>
 
@@ -376,32 +353,33 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* MOBILE STICKY ADD TO CART BAR */}
-      <div 
-        className={`md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-200 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-50 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          showStickyBar ? "translate-y-0" : "translate-y-[120%]"
-        }`}
-      >
-        <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 line-clamp-1">{product.name}</span>
-            <span className="text-lg font-black text-black">Rs. {currentPrice}</span>
+      {/* ADVANCED MOBILE STICKY BOTTOM BAR */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-3 pb-5 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        
+        <div className="flex gap-2 mb-2">
+          {product.options?.map((opt: any) => (
+             <div key={opt.name} className="flex-1 border border-gray-200 rounded text-center py-1 text-[10px] font-bold text-slate-600 truncate bg-slate-50">
+               {selectedOptions[opt.name] || `Select ${opt.name}`}
+             </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between border border-gray-300 rounded-lg px-2 h-12 w-28 bg-white shrink-0">
+             <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="text-xl font-light px-2 text-gray-500 hover:text-black">−</button>
+             <span className="font-bold text-sm text-black">{quantity}</span>
+             <button onClick={() => setQuantity(q => q + 1)} className="text-xl font-light px-2 text-gray-500 hover:text-black">+</button>
           </div>
+          
           <button 
-            onClick={() => {
-              const optionsList = product.options || [];
-              const allSelected = optionsList.every((opt: any) => selectedOptions[opt.name]);
-              if (!allSelected) {
-                window.scrollTo({ top: 300, behavior: 'smooth' });
-                alert("Please select your options first.");
-              } else {
-                handleAddToCart();
-              }
-            }} 
-            className="bg-black text-white px-8 py-3.5 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all shrink-0"
+            onClick={handleBuyItNow} 
+            className="flex-1 bg-[#FFA500] text-white h-12 rounded-lg font-black uppercase text-[11px] shadow-md active:bg-orange-600 transition-colors flex flex-col items-center justify-center leading-tight"
           >
-            Add to Cart
+            <span>GET YOURS - RS. {currentPrice * quantity}</span>
           </button>
+        </div>
+        <div className="text-center mt-2">
+           <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Secure 256-bit Checkout</span>
         </div>
       </div>
 
