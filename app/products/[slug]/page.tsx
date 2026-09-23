@@ -19,22 +19,26 @@ export default function ProductDetail() {
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1); 
 
-  // Image Gallery State
+  // Image Gallery & Zoom State
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [allImages, setAllImages] = useState<string[]>([]);
+  const [zoomStyle, setZoomStyle] = useState({});
 
   // Conversion States
   const [timeLeft, setTimeLeft] = useState({ hours: 16, minutes: 48, seconds: 35 });
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [stockLeft, setStockLeft] = useState(7); 
   
-  // Accordion State (This was missing)
+  // Accordion State
   const [activeAccordion, setActiveAccordion] = useState<string>("");
+
+  // Related Products
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
   // Mobile Scroll Ref for Carousel
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // 1. Fetch Product Data
+  // 1. Fetch Product Data & Related Products
   useEffect(() => {
     if (!slug) return;
     const fetchProduct = async () => {
@@ -50,6 +54,16 @@ export default function ProductDetail() {
             ? data.images 
             : (data.imageUrl ? [data.imageUrl] : []);
           setAllImages(imagesArray);
+
+          // Fetch Related Products (same category)
+          try {
+            const relRes = await fetch(`/api/products?category=${data.category || 'All'}&limit=4`);
+            if(relRes.ok){
+              const relData = await relRes.json();
+              const filtered = (relData.products || []).filter((p:any) => p.slug !== slug);
+              setRelatedProducts(filtered.slice(0, 4));
+            }
+          } catch(e) { console.error("Related products fetch error", e); }
         }
       } catch (error) {
         console.error("Error fetching product details:", error);
@@ -116,6 +130,20 @@ export default function ProductDetail() {
     }
   };
 
+  // Magnifying Zoom Handlers (Desktop Only)
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomStyle({
+      transformOrigin: `${x}% ${y}%`,
+      transform: 'scale(2.2)'
+    });
+  };
+  const handleMouseLeave = () => {
+    setZoomStyle({ transformOrigin: 'center center', transform: 'scale(1)' });
+  };
+
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white">
       <div className="w-8 h-8 border-[2px] border-slate-100 border-t-black rounded-full animate-spin mb-4"></div>
@@ -174,7 +202,6 @@ export default function ProductDetail() {
       <style dangerouslySetInnerHTML={{__html: `
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Rich Text styling for Admin Description */
         .admin-description img { width: 100%; border-radius: 12px; margin-top: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
         .admin-description h2, .admin-description h3 { font-size: 1.25rem; font-weight: 900; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111; }
         .admin-description p { font-size: 0.95rem; line-height: 1.7; color: #444; margin-bottom: 1rem; }
@@ -188,16 +215,26 @@ export default function ProductDetail() {
         <span className="bg-white/20 px-1.5 py-0.5 rounded">{String(timeLeft.seconds).padStart(2, '0')}s</span>
       </div>
 
-      <div className="max-w-[1200px] mx-auto pt-6 pb-12 lg:pb-24">
+      <div className="max-w-[1200px] mx-auto pt-6 pb-12 lg:pb-20">
         
         <div className="flex flex-col lg:flex-row gap-0 lg:gap-12 items-start">
           
-          {/* LEFT SIDE: SWIPEABLE GALLERY */}
-          <div className="w-full lg:w-1/2 relative bg-[#F5F5F7]">
-            {/* Desktop Gallery */}
-            <div className="hidden lg:block relative aspect-[4/5]">
+          {/* LEFT SIDE: GALLERY */}
+          <div className="w-full lg:w-1/2 relative bg-[#F5F5F7] group">
+            
+            {/* Desktop Zoomable Gallery */}
+            <div 
+              className="hidden lg:flex relative aspect-[4/5] w-full overflow-hidden cursor-crosshair bg-white items-center justify-center"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            >
                {allImages.length > 0 ? (
-                  <img src={allImages[currentImageIdx]} alt={product.name} className="w-full h-full object-cover" />
+                  <img 
+                    src={allImages[currentImageIdx]} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover transition-transform duration-200 ease-out" 
+                    style={zoomStyle}
+                  />
                ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">No Image</div>
                )}
@@ -205,11 +242,7 @@ export default function ProductDetail() {
 
             {/* Mobile Swipeable Gallery */}
             <div className="lg:hidden relative w-full aspect-[4/5]">
-              <div 
-                ref={carouselRef}
-                onScroll={handleMobileScroll}
-                className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar w-full h-full"
-              >
+              <div ref={carouselRef} onScroll={handleMobileScroll} className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar w-full h-full">
                 {allImages.length > 0 ? (
                   allImages.map((img, idx) => (
                     <div key={idx} className="min-w-full w-full h-full snap-center bg-white">
@@ -217,9 +250,7 @@ export default function ProductDetail() {
                     </div>
                   ))
                 ) : (
-                  <div className="min-w-full w-full h-full snap-center flex items-center justify-center">
-                    No Image
-                  </div>
+                  <div className="min-w-full w-full h-full snap-center flex items-center justify-center">No Image</div>
                 )}
               </div>
               
@@ -232,38 +263,27 @@ export default function ProductDetail() {
                 </div>
               )}
             </div>
+            
+            {/* Desktop Carousel Arrows */}
+            <div className="hidden lg:flex py-4 bg-white justify-center items-center gap-1.5 w-full">
+               {allImages.length > 1 && allImages.map((_, idx) => (
+                  <button key={idx} onClick={() => setCurrentImageIdx(idx)} className={`h-2 rounded-full transition-all duration-300 ${currentImageIdx === idx ? 'w-6 bg-blue-600' : 'w-2 bg-gray-300'}`} />
+               ))}
+            </div>
           </div>
 
           {/* RIGHT SIDE: PRODUCT INFO */}
           <div className="w-full lg:w-1/2 flex flex-col pt-10 px-5 md:px-8">
             
-            {/* Title */}
             <h1 className="text-2xl md:text-3xl font-black mb-3 text-slate-900 leading-tight">
               {product.name}
             </h1>
             
-            {/* Price & Compare */}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-6">
               <span className="text-xl font-black text-blue-700">Rs. {currentPrice}</span>
               {product.compareAtPrice && currentPrice < product.compareAtPrice && (
                 <span className="text-sm font-bold text-slate-400 line-through">Rs. {product.compareAtPrice}</span>
               )}
-            </div>
-
-            {/* Trust Tick Marks */}
-            <div className="flex flex-col gap-2 mb-6 border-b border-gray-100 pb-6">
-              <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
-                <span className="flex items-center justify-center w-4 h-4 rounded bg-green-500 text-white"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></span>
-                Trusted by 50,000+ Happy Customers
-              </div>
-              <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
-                <span className="flex items-center justify-center w-4 h-4 rounded bg-green-500 text-white"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></span>
-                30-Day Money-Back Guarantee
-              </div>
-              <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700">
-                <span className="flex items-center justify-center w-4 h-4 rounded bg-green-500 text-white"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></span>
-                Hassle-Free Returns - No Questions Asked
-              </div>
             </div>
 
             {/* DYNAMIC OPTIONS */}
@@ -292,60 +312,47 @@ export default function ProductDetail() {
             </div>
 
             {/* MAIN CHECKOUT ACTIONS (Desktop Only) */}
-            <div className="hidden md:flex items-center gap-3 mb-6">
+            <div className="hidden md:flex items-center gap-3 mb-4">
               <div className="flex items-center justify-between border border-gray-300 rounded-lg px-2 h-12 w-28 bg-white shrink-0">
                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="text-xl font-light px-2 text-gray-500 hover:text-black">−</button>
                  <span className="font-bold text-sm text-black">{quantity}</span>
                  <button onClick={() => setQuantity(q => q + 1)} className="text-xl font-light px-2 text-gray-500 hover:text-black">+</button>
               </div>
-              <button 
-                onClick={handleBuyItNow} 
-                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white h-12 rounded-lg font-black uppercase tracking-wider text-sm shadow-[0_4px_15px_rgba(245,158,11,0.3)] transition-all flex flex-col items-center justify-center leading-none"
-              >
+              <button onClick={handleBuyItNow} className="flex-1 bg-[#FFA500] hover:bg-[#E69500] text-white h-12 rounded-lg font-black uppercase tracking-wider text-sm shadow-[0_4px_15px_rgba(245,158,11,0.3)] transition-all flex flex-col items-center justify-center leading-none">
                 <span>GET YOURS - RS. {currentPrice * quantity}</span>
               </button>
             </div>
 
-            {/* Promo Box */}
-            <div className="bg-[#E8F3F4] border border-[#BDE0E2] rounded-lg p-3 flex items-center justify-center gap-3 mb-8">
-               <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
-               <span className="text-[11px] font-black text-teal-900 tracking-wide">FREE MYSTERY GIFT with orders over Rs. 5000!</span>
-            </div>
-            
-            {/* Trust Seals */}
-            <div className="flex flex-col items-center justify-center pt-4 pb-8 border-b border-gray-100">
-               <span className="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-widest">Guaranteed Safe Checkout</span>
-               <div className="flex items-center gap-4 opacity-70 grayscale">
-                 <span className="text-xs font-black italic">Mcafee</span>
-                 <span className="text-xs font-black italic">NORTON</span>
-                 <span className="text-xs font-black italic">TRUSTe</span>
+            {/* SAFE CHECKOUT & SHIPPING BADGES */}
+            <div className="hidden md:flex items-center justify-start gap-8 py-3 mb-6">
+               <div className="flex items-center gap-2 text-slate-800">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                  <span className="text-[13px] font-bold text-slate-700">Safe and Secure Checkout</span>
+               </div>
+               <div className="flex items-center gap-2 text-slate-800">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                  <span className="text-[13px] font-bold text-slate-700">Free Shipping</span>
                </div>
             </div>
 
-            {/* OPEN ADMIN DESCRIPTION (RICH TEXT) */}
-            <div className="mt-8 mb-12">
+            {/* OPEN ADMIN DESCRIPTION */}
+            <div className="mt-4 mb-8">
                {product.description ? (
-                 <div 
-                   className="admin-description" 
-                   dangerouslySetInnerHTML={{ __html: product.description }} 
-                 />
+                 <div className="admin-description" dangerouslySetInnerHTML={{ __html: product.description }} />
                ) : (
                  <div className="admin-description">
-                   <h3>Key Features!</h3>
                    <p>Experience the ultimate blend of comfort and style. Our exclusive piece is designed to provide you with unrestricted movement and absolute confidence throughout your day.</p>
-                   <p>✓ Premium build quality<br/>✓ All-day comfort<br/>✓ Versatile aesthetic</p>
                  </div>
                )}
             </div>
 
-            {/* Standard Shipping Dropdown */}
             <div className="border-t border-gray-200 py-4">
               <button onClick={() => setActiveAccordion(activeAccordion === "shipping" ? "" : "shipping")} className="w-full flex items-center justify-between text-left group">
                 <h3 className="text-sm font-bold text-slate-900 tracking-wide">Shipping & Returns</h3>
                 <span className="text-xl font-light text-slate-400">{activeAccordion === "shipping" ? "−" : "+"}</span>
               </button>
               <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === "shipping" ? "max-h-[300px] mt-3" : "max-h-0"}`}>
-                <p className="text-sm text-slate-600 leading-relaxed">Free nationwide shipping. 30-Day Money back guarantee on all items. Fast dispatch within 24 hours.</p>
+                <p className="text-sm text-slate-600 leading-relaxed mt-2">Free nationwide shipping. 30-Day Money back guarantee on all items. Fast dispatch within 24 hours.</p>
               </div>
             </div>
 
@@ -353,9 +360,155 @@ export default function ProductDetail() {
         </div>
       </div>
 
+      {/* ======================================================== */}
+      {/* WHY 50,000+ CUSTOMERS TRUST US (Centered & Premium)      */}
+      {/* ======================================================== */}
+      <div className="py-16 md:py-20 bg-white border-t border-gray-100 px-4">
+         <div className="max-w-6xl mx-auto">
+           <div className="text-center mb-12">
+             <h2 className="text-2xl md:text-3xl font-black mb-3 tracking-tight text-slate-900">Why 50,000+ Customers Trust Us</h2>
+             <p className="text-slate-600 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+               Our main goal is customer satisfaction, which is why we strive to offer the best service and shopping experience on the market.
+             </p>
+           </div>
+           
+           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-12 md:gap-6">
+              
+              <div className="flex flex-col items-center text-center mx-auto">
+                <div className="w-16 h-16 rounded-full border-2 border-[#1E3A8A] flex items-center justify-center mb-5 p-1">
+                  <div className="w-full h-full rounded-full border-2 border-slate-800 flex items-center justify-center text-slate-800">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                </div>
+                <h4 className="font-black text-[14px] uppercase tracking-wide text-slate-900 mb-2">Customer Service</h4>
+                <p className="text-sm text-slate-600 leading-relaxed">Need help? We are at your <br/><span className="text-[#1E3A8A] font-bold">service 24/7.</span></p>
+              </div>
+              
+              <div className="flex flex-col items-center text-center mx-auto">
+                <div className="w-16 h-16 rounded-full border-2 border-[#1E3A8A] flex items-center justify-center mb-5 p-1">
+                  <div className="w-full h-full rounded-full border-2 border-slate-800 flex items-center justify-center text-slate-800">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                </div>
+                <h4 className="font-black text-[14px] uppercase tracking-wide text-slate-900 mb-2">Money Back Guarantee</h4>
+                <p className="text-sm text-slate-600 leading-relaxed">Not satisfied? Return or exchange<br/>within <span className="text-[#1E3A8A] font-bold">30 days, hassle-free.</span></p>
+              </div>
+
+              <div className="flex flex-col items-center text-center mx-auto">
+                <div className="w-16 h-16 rounded-full border-2 border-[#1E3A8A] flex items-center justify-center mb-5 p-1">
+                  <div className="w-full h-full rounded-full border-2 border-slate-800 flex items-center justify-center text-slate-800">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                </div>
+                <h4 className="font-black text-[14px] uppercase tracking-wide text-slate-900 mb-2">Secure Payment</h4>
+                <p className="text-sm text-slate-600 leading-relaxed">Shop confidently. All transactions<br/>are <span className="text-[#1E3A8A] font-bold">SSL encrypted.</span></p>
+              </div>
+
+              <div className="flex flex-col items-center text-center mx-auto">
+                <div className="w-16 h-16 rounded-full border-2 border-[#1E3A8A] flex items-center justify-center mb-5 p-1">
+                  <div className="w-full h-full rounded-full border-2 border-slate-800 flex items-center justify-center text-slate-800">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                </div>
+                <h4 className="font-black text-[14px] uppercase tracking-wide text-slate-900 mb-2">Free Shipping</h4>
+                <p className="text-sm text-slate-600 leading-relaxed">Worldwide delivery. Free shipping<br/>on <span className="text-[#1E3A8A] font-bold">orders over Rs. 5000</span></p>
+              </div>
+
+           </div>
+         </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* YOU MAY ALSO LIKE (Cross-selling slider)                 */}
+      {/* ======================================================== */}
+      {relatedProducts.length > 0 && (
+        <div className="bg-[#F8FAFC] py-16 px-4 border-t border-gray-100">
+          <div className="max-w-[1200px] mx-auto">
+            <h2 className="text-2xl md:text-3xl font-black text-center mb-10 text-slate-900 tracking-tight">YOU MAY ALSO LIKE</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {relatedProducts.map(rel => (
+                <Link href={`/products/${rel.slug}`} key={rel._id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group block">
+                  <div className="aspect-[4/5] bg-gray-100 overflow-hidden relative">
+                    <img src={rel.imageUrl || rel.images?.[0]} alt={rel.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-4 text-center">
+                    <h3 className="text-sm font-bold text-slate-900 truncate mb-1">{rel.name}</h3>
+                    <p className="text-sm font-black text-[#1E3A8A]">Rs. {rel.price}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* PREMIUM NEWSLETTER SUBSCRIPTION                          */}
+      {/* ======================================================== */}
+      <div className="py-20 px-4 bg-[#9BA9CE] text-slate-900 text-center flex flex-col items-center justify-center">
+        <div className="max-w-2xl w-full">
+           <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tight text-slate-900">Get the Best Deals Delivered to Your Inbox</h2>
+           <p className="text-sm md:text-[15px] mb-8 text-slate-800 font-semibold leading-relaxed px-2">Subscribe for exclusive discounts, early access to new arrivals, and weekly surprises.</p>
+           
+           <form className="flex flex-col sm:flex-row gap-3 w-full max-w-lg mx-auto" onSubmit={(e) => { e.preventDefault(); alert('Subscribed successfully!'); }}>
+             <input type="email" required placeholder="Enter your email" className="flex-1 p-3.5 rounded bg-white text-slate-900 border border-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-400 font-medium" />
+             <button type="submit" className="w-full sm:w-auto bg-[#7D8EBA] hover:bg-[#6A7AA8] text-white px-8 py-3.5 rounded font-bold transition-colors shadow-sm text-[15px] tracking-wide">Subscribe</button>
+           </form>
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* PROFESSIONAL FOOTER (RAONIC & 2-Column Mobile Grid)      */}
+      {/* ======================================================== */}
+      <footer className="bg-white py-16 px-6 border-t border-gray-200">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-2 md:grid-cols-3 gap-10 md:gap-8 text-left">
+           
+           {/* Column 1: Main Menu */}
+           <div className="flex flex-col gap-4">
+             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Main Menu</h3>
+             <Link href="/" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Home</Link>
+             <Link href="/products" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Products</Link>
+             <Link href="/about" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">About Us</Link>
+             <Link href="/track" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Track Your Order</Link>
+             <Link href="/contact" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Contact Us</Link>
+           </div>
+
+           {/* Column 2: Help & Support */}
+           <div className="flex flex-col gap-4">
+             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Help & Support</h3>
+             <Link href="/search" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Search</Link>
+             <Link href="/faq" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">FAQs</Link>
+             <Link href="/privacy" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Privacy Policy</Link>
+             <Link href="/terms" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Terms of Service</Link>
+             <Link href="/refund" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Refund Policy</Link>
+             <Link href="/shipping" className="text-sm text-slate-700 hover:text-black font-bold uppercase tracking-wider transition-colors">Shipping Policy</Link>
+           </div>
+
+           {/* Column 3: Brand & Contact (Full width on mobile) */}
+           <div className="col-span-2 md:col-span-1 flex flex-col gap-4 mt-4 md:mt-0 pt-8 md:pt-0 border-t md:border-0 border-gray-100">
+             <h2 className="text-4xl font-black text-[#1E3A8A] tracking-tighter mb-2">RAONIC</h2>
+             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Get In Touch</h3>
+             
+             <div className="text-sm font-medium text-slate-600 mt-2">
+               <p className="mb-1">WhatsApp / Call:</p>
+               <a href="tel:+923013043757" className="text-base font-bold text-black hover:text-[#1E3A8A] transition-colors">+92 301 3043757</a>
+             </div>
+             
+             <div className="text-sm font-medium text-slate-600 mt-2">
+               <p className="mb-1">Email:</p>
+               <a href="mailto:support@raonic.com" className="text-base font-bold text-black hover:text-[#1E3A8A] transition-colors">support@raonic.com</a>
+             </div>
+             
+             <p className="text-xs text-slate-500 leading-relaxed mt-4 uppercase tracking-wider font-semibold">
+               Support operating hours:<br/>9 AM to 5 PM (Mon - Fri)
+             </p>
+           </div>
+
+        </div>
+      </footer>
+
       {/* ADVANCED MOBILE STICKY BOTTOM BAR */}
       <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-3 pb-5 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-        
         <div className="flex gap-2 mb-2">
           {product.options?.map((opt: any) => (
              <div key={opt.name} className="flex-1 border border-gray-200 rounded text-center py-1 text-[10px] font-bold text-slate-600 truncate bg-slate-50">
@@ -363,23 +516,15 @@ export default function ProductDetail() {
              </div>
           ))}
         </div>
-
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-between border border-gray-300 rounded-lg px-2 h-12 w-28 bg-white shrink-0">
              <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="text-xl font-light px-2 text-gray-500 hover:text-black">−</button>
              <span className="font-bold text-sm text-black">{quantity}</span>
              <button onClick={() => setQuantity(q => q + 1)} className="text-xl font-light px-2 text-gray-500 hover:text-black">+</button>
           </div>
-          
-          <button 
-            onClick={handleBuyItNow} 
-            className="flex-1 bg-[#FFA500] text-white h-12 rounded-lg font-black uppercase text-[11px] shadow-md active:bg-orange-600 transition-colors flex flex-col items-center justify-center leading-tight"
-          >
+          <button onClick={handleBuyItNow} className="flex-1 bg-[#FFA500] hover:bg-[#E69500] text-white h-12 rounded-lg font-black uppercase text-[11px] shadow-md transition-colors flex flex-col items-center justify-center leading-tight">
             <span>GET YOURS - RS. {currentPrice * quantity}</span>
           </button>
-        </div>
-        <div className="text-center mt-2">
-           <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Secure 256-bit Checkout</span>
         </div>
       </div>
 
